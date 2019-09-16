@@ -35,7 +35,6 @@ def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data
     for i in range(len(frame_array)):
         # writing to a image array
         out.write(frame_array[i])
-    print(pathOut)
     out.release()
 
 
@@ -50,6 +49,5 @@ def runSingleCarlaServer():
     abc.close()
 
 
-#runSingleCarlaServer()
-#time.sleep(5)
+runSingleCarlaServer()
 makeVideoFromSensorFrames()
