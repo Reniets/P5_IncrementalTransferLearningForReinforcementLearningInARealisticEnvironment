@@ -1,0 +1,6 @@
+future
+numpy
+pygame
+tensorforce
+matplotlib
+tensorflow

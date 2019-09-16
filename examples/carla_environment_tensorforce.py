@@ -1,10 +1,8 @@
-import glob
 import os
 import signal
-import sys
 import time
 from subprocess import Popen
-from utils import CARLA_PATH, makeCarlaImportable
+from setup.utils import CARLA_PATH, makeCarlaImportable
 from tensorforce.environments import Environment
 
 makeCarlaImportable()  # Defines a path to your carla folder which makes it visible to import

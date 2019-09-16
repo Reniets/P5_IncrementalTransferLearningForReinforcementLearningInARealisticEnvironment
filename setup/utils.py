@@ -3,7 +3,7 @@ import glob
 import os
 
 # Constants
-CARLA_PATH = '/home/d506e19/Downloads/Carla'
+CARLA_PATH = '/home/simon/Desktop/Carla'
 
 
 # Functions
