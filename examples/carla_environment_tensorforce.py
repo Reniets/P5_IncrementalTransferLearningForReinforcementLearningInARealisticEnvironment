@@ -1,5 +1,6 @@
 import os
 import signal
+import subprocess
 import time
 from subprocess import Popen
 from setup.utils import CARLA_PATH, makeCarlaImportable
@@ -12,9 +13,9 @@ import carla
 class CarlaEnvironmentTensorforce(Environment):
     def __init__(self, port: str):
         # Open simulation
-        self.p = Popen(CARLA_PATH + "/./CarlaUE4.sh -opengl -world-port=" + port, shell=True, preexec_fn=os.setsid)
-        time.sleep(10)  # If DISPLAY is off, sleep longer (10 secs)
-
+        self.p = Popen(CARLA_PATH + '/./CarlaUE4.sh -carla-settings="../CarlaSettings.ini" -world-port=' + port, shell=True, preexec_fn=os.setsid)
+        time.sleep(5)  # If DISPLAY is off, sleep longer (10 secs)
+        subprocess.Popen("./config.py --weather ClearSunset", cwd=CARLA_PATH + "/PythonAPI/util/", shell=True)
         self.IM_WIDTH = 400
         self.IM_HEIGHT = 200
 
@@ -25,7 +26,9 @@ class CarlaEnvironmentTensorforce(Environment):
         world = client.get_world()
         blueprint_library = world.get_blueprint_library()
 
-        world.set_weather(carla.WeatherParameters.ClearSunset)
+        settings = world.get_settings()
+        settings.fixed_delta_seconds = 0.1  # 10 fps MAX, physics will break at lower fps (TODO: Look a synchronous)
+        world.apply_settings(settings)
 
         vehicle = blueprint_library.filter("model3")[0]  # Choose tesla as vehicle actor
 
