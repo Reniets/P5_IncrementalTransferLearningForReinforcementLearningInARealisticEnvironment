@@ -60,6 +60,7 @@ def runSingleCarlaServer():
     abc.close()
 
 
-clearFrameFolder()
-runSingleCarlaServer()
-makeVideoFromSensorFrames()
+# Actual execution
+#clearFrameFolder()              # Clear so no previous frames ruin the video
+runSingleCarlaServer()          # Run single car environment, and capture frames from sensor (exported to data/frames)
+# makeVideoFromSensorFrames()     # Concat all images in data/frames into a video
