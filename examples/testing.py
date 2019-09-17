@@ -14,10 +14,11 @@ import datetime
 from examples.carla_environment_tensorforce import CarlaEnvironmentTensorforce
 
 
-def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data/videos/" + str(datetime.datetime.now()) + ".avi"):
+def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data/videos/" + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")) + ".avi"):
     frame_array = []
     files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
     files.sort()
+
     for i in range(len(files)):
         filename = pathIn + files[i]
         # reading each files
@@ -30,10 +31,10 @@ def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data
         frame_array.append(img)
 
     out = cv2.VideoWriter(pathOut, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+
     for i in range(len(frame_array)):
         # writing to a image array
         out.write(frame_array[i])
-
     out.release()
 
 
