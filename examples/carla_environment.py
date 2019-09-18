@@ -14,7 +14,7 @@ class CarlaEnvironment(Environment):
     def __init__(self, port: str):
         # Open simulation
         self.p = Popen(CARLA_PATH + '/./CarlaUE4.sh -carla-settings="../CarlaSettings.ini" -world-port=' + port, shell=True, preexec_fn=os.setsid)
-        time.sleep(5)  # If DISPLAY is off, sleep longer (10 secs)
+        time.sleep(10)  # If DISPLAY is off, sleep longer (10 secs)
         subprocess.Popen("./config.py --weather ClearSunset", cwd=CARLA_PATH + "/PythonAPI/util/", shell=True)
         self.IM_WIDTH = 400
         self.IM_HEIGHT = 200
@@ -23,6 +23,7 @@ class CarlaEnvironment(Environment):
 
         client = carla.Client('localhost', int(port))
         client.set_timeout(10.0)
+        client.load_world('Straight3')
         world = client.get_world()
         blueprint_library = world.get_blueprint_library()
 
@@ -31,8 +32,7 @@ class CarlaEnvironment(Environment):
         world.apply_settings(settings)
 
         vehicle = blueprint_library.filter("model3")[0]  # Choose tesla as vehicle actor
-
-        transform = world.get_map().get_spawn_points()[2]  # Pick some predictable spawn point
+        transform = world.get_map().get_spawn_points()[0] # Pick some predictable spawn point
         vehicle = world.spawn_actor(vehicle, transform)
         self.actor_list.append(vehicle)
 
