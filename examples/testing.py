@@ -11,7 +11,7 @@ import os
 from os.path import isfile, join
 import cv2
 import datetime
-from examples.carla_environment_tensorforce import CarlaEnvironmentTensorforce
+from examples.carla_environment import CarlaEnvironment
 
 
 def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data/videos/" + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")) + ".avi"):
@@ -40,11 +40,11 @@ def makeVideoFromSensorFrames(fps=10, pathIn="../data/frames/", pathOut="../data
 
 def runMultipleCarlaServers(num=2):
     for i in range(num):
-        CarlaEnvironmentTensorforce(str(2000 + i * 3))
+        CarlaEnvironment(str(2000 + i * 3))
 
 
 def runSingleCarlaServer():
-    abc = CarlaEnvironmentTensorforce('2000')
+    abc = CarlaEnvironment('2000')
     input("Press Enter to close...")
     abc.close()
 

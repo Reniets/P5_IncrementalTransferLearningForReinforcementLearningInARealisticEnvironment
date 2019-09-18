@@ -10,7 +10,7 @@ makeCarlaImportable()  # Defines a path to your carla folder which makes it visi
 import carla
 
 
-class CarlaEnvironmentTensorforce(Environment):
+class CarlaEnvironment(Environment):
     def __init__(self, port: str):
         # Open simulation
         self.p = Popen(CARLA_PATH + '/./CarlaUE4.sh -carla-settings="../CarlaSettings.ini" -world-port=' + port, shell=True, preexec_fn=os.setsid)
