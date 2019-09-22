@@ -1,0 +1,10 @@
+psutil
+future
+numpy
+pygame
+matplotlib
+tensorflow
+cmake
+opencv-python
+stable-baselines
+dataclasses

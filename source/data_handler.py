@@ -2,7 +2,8 @@ import os
 from os.path import isfile, join
 import cv2
 import datetime
-from setup.utils import CARLA_PATH, makeCarlaImportable
+
+from gym_carla.carla_utils import makeCarlaImportable
 
 makeCarlaImportable()  # Defines a path to your carla folder which makes it visible to import
 import carla

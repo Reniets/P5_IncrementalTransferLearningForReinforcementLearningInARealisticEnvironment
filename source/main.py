@@ -1,23 +1,29 @@
-import source.manual_control as manualControl
-from source.carla_environment import CarlaEnvironment
-import source.data_handler as dataHandler
+import os, logging
+import time
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+logging.getLogger("tensorflow").setLevel(logging.CRITICAL)
+logging.getLogger("tensorflow_hub").setLevel(logging.CRITICAL)
+
+import gym
+from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines import *
+from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
+
+from gym_carla.envs.carla_env import CarlaEnv
 
 
-def runCarlaServer(makeVideo=True, port="2000", runTestEnvironment=True, runManualControl=False):
-    if makeVideo: dataHandler.clearFrameFolder()  # Clear so no previous frames ruin the video
+def runCarlaGymTraining():
+    startCarlaSims()
 
-    carlaEnv = CarlaEnvironment(port)
+    env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
+    model = A2C(MlpPolicy, env, verbose=1)
+    model.learn(total_timesteps=10000)
+    model.save("a2c_carla1")
 
-    if runTestEnvironment: carlaEnv.setupTestEnvironment()
-    else: carlaEnv.create()
+    input('Press enter to exit...')
+    killCarlaSims()
 
-    if runManualControl: manualControl.main()
+runCarlaGymTraining()
 
-    # Wait for user to terminate simulation
-    input("Press Enter to close...")
-    carlaEnv.close()
-
-    if makeVideo: dataHandler.makeVideoFromSensorFrames()  # Concat all images in data/frames into a video
-
-
-runCarlaServer()
