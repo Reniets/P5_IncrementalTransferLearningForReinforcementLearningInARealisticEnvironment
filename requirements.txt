@@ -8,3 +8,4 @@ cmake
 opencv-python
 stable-baselines
 dataclasses
+gym

@@ -52,7 +52,7 @@ def startCarlaSims():
 
     for host in range(settings.CARLA_SIMS_NO):
         subprocess.Popen(['./CarlaUE4.sh' + ' -world-port=' + str(settings.CARLA_SIMS[host][1])], cwd=settings.CARLA_PATH, shell=True)
-        time.sleep(3)  # If DISPLAY is off, sleep longer
+        time.sleep(4)  # If DISPLAY is off, sleep longer
 
     for host in range(settings.CARLA_SIMS_NO):
         client = carla.Client(*settings.CARLA_SIMS[host][:2])
