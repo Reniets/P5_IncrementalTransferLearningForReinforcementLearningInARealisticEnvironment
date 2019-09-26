@@ -26,7 +26,7 @@ class Sql:
         cursor = self._cursor()
 
         query = "INSERT INTO `sessions`(`name`) VALUES (%s)"
-        cursor.execute(query, name)
+        cursor.execute(query, (name,))
 
         self.db.commit()
 
@@ -39,7 +39,7 @@ class Sql:
                     INSERT INTO `episodes`(`session`, `number`, `reward`, `video_blob`) 
                     VALUES (%s, %s, %s, %s)
                 """
-        cursor.execute(query, session_id, episode_nr, reward, video_blob)
+        cursor.execute(query, (session_id, episode_nr, reward, video_blob))
 
         self.db.commit()
 

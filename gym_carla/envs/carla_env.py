@@ -1,5 +1,4 @@
 import math
-from PIL import Image
 import os
 import gym
 from gym.spaces import Discrete, Box, Tuple
@@ -29,7 +28,7 @@ class CarlaEnv(gym.Env):
         self.actorList = []
         self.imgWidth = settings.IMG_WIDTH
         self.imgHeight = settings.IMG_HEIGHT
-        self.episodeLen = settings.SECONDS_PER_EPISODE
+        self.episodeTicks = 0
 
         # Video variables
         self.episodeNr = 0
@@ -44,7 +43,7 @@ class CarlaEnv(gym.Env):
         self.grassSensor = None
         self.imgFrame = None
         self.wheelsOnGrass = None
-        self.episodeStartTime = None
+        self.episodeStartTime = 0
         self.episodeReward = None
 
         # Declare reward dependent values
@@ -69,8 +68,11 @@ class CarlaEnv(gym.Env):
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
         if self.episodeFrames:
-            file_path = f"videoTest_{self.episodeNr}"
-            self._exportVideo(file_path, self.episodeFrames)
+            folder = "../data/videos"
+            file_name = f"videoTest_{self.episodeNr}.avi"
+            file_path = folder+"/"+file_name
+
+            self._exportVideo(folder, file_name, self.episodeFrames)
             self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
 
         # global stepsCountEpisode
@@ -105,9 +107,6 @@ class CarlaEnv(gym.Env):
         # Disengage brakes from earlier workaround
         self._setActionDiscrete(Action.DO_NOTHING.value)
 
-        # Start episode timer
-        self.episodeStartTime = time.time()
-
         return self.imgFrame  # Returns initial observation (First image)
 
     def _resetInstanceVariables(self):
@@ -118,7 +117,7 @@ class CarlaEnv(gym.Env):
         self.grassSensor = None
         self.imgFrame = None
         self.wheelsOnGrass = None
-        self.episodeStartTime = None
+        self.episodeTicks = 0
         self.episodeReward = None
 
         # Declare reward dependent values
@@ -185,12 +184,14 @@ class CarlaEnv(gym.Env):
 
     # Returns true, if the current episode is a video episode
     def _isVideoEpisode(self):
-        return self.episodeNr % settings.VIDEO_EXPORT_RATE == 0
+        return (self.carlaInstance == 0) and (self.episodeNr % settings.VIDEO_EXPORT_RATE == 0)
 
     # Exports a video from numpy arrays to the file system
-    def _exportVideo(self, file_path, frames):
-        if not os.path.isdir(file_path):
-            os.mkdir(file_path)
+    def _exportVideo(self, folder, file_name, frames):
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+        file_path = folder + "/" + file_name
 
         video_size = (settings.IMG_HEIGHT, settings.IMG_WIDTH)
         fps = 1/settings.TIME_STEP_SIZE
@@ -198,7 +199,7 @@ class CarlaEnv(gym.Env):
         out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, video_size)
 
         for frame in frames:
-            out.write(Image.fromarray(frame, "RGB"))
+            out.write(frame)
 
         out.release()
 
@@ -228,6 +229,7 @@ class CarlaEnv(gym.Env):
     def step(self, action):
         # global stepsCountEpisode
         # stepsCountEpisode += 1
+        self.episodeTicks += 1
 
         # Do action
         self._setActionDiscrete(action)
@@ -364,7 +366,7 @@ class CarlaEnv(gym.Env):
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
-        return (self.episodeStartTime + self.episodeLen) < time.time()
+        return self.episodeTicks > settings.TICKS_PER_EPISODE
 
     # Returns true if all four wheels are not on the road
     def _isCarOnGrass(self):
