@@ -16,7 +16,7 @@ from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 from gym_carla.envs.carla_env import CarlaEnv
 
 n_steps = 0
-agentNum = 0
+agentNum = 2
 name = "best_model_discrete_no_early_end"
 
 def callback(_locals, _globals):
@@ -38,9 +38,9 @@ def runCarlaGymTraining():
 
     env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
 
-    if os.path.isfile(f"log/{name}_0.pkl"):
+    if os.path.isfile(f"log/{name}_2.pkl"):
         print("load")
-        model = A2C.load(f"log/{name}_0", env, tensorboard_log='./tensorboard_log')
+        model = A2C.load(f"log/{name}_2", env, tensorboard_log='./tensorboard_log')
     else:
         print("New")
         model = A2C(CnnLstmPolicy, env, tensorboard_log='./tensorboard_log')
