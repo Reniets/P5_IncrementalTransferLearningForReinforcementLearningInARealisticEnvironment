@@ -16,43 +16,59 @@ from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 from gym_carla.envs.carla_env import CarlaEnv
 
 n_steps = 0
-agentNum = 0
-name = "best_model_discrete_new_rewards"
+
+# Setup environment
+env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
+
+# Decide which RL module and policy
+RL_MODULE = A2C
+POLICY = CnnLstmPolicy
+# give model name
+model_name = "best_model_discrete_new_rewards"
+# Decide whether to start from a previous version and if so which previous version
+previous_version = None  # Ex (model_name, 5)  # None if blank slate, tuple of (name, agentNum) if continued or transfer
+
+# Automatically assigns the agentNum.
+agentNum = previous_version[1] + 1 if previous_version is not None and previous_version[0] is model_name else 0
+
 
 def callback(_locals, _globals):
     global n_steps, agentNum
-    if (n_steps + 1) % 20000 == 0:
-        agentNum += 1
 
-    # Print stats every 1000 calls
+    # Print stats every 20000 calls
     if (n_steps + 1) % 20000 == 0:
-        print("Saving new best model")
-        _locals['self'].save(f"log/{name}_{str(agentNum)}.pkl")
+        print("Saving new model")
+        _locals['self'].save(f"log/{model_name}_{str(agentNum)}.pkl")
+        agentNum += 1
 
     n_steps += 1
     return True
 
 
-def runCarlaGymTraining():
-    startCarlaSims()
-
-    env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
-
-    if os.path.isfile(f"log/{name}_0.pkl"):
+def load_model_from_file(module, v):
+    if os.path.isfile(f"log/{v[0]}_{v[1]}.pkl"):
         print("load")
-        model = A2C.load(f"log/{name}_0", env, tensorboard_log='./tensorboard_log')
+        return module.load(f"log/{v[0]}_{v[1]}", env, tensorboard_log='./tensorboard_log')
     else:
-        print("New")
-        model = A2C(CnnLstmPolicy, env, tensorboard_log='./tensorboard_log')
+        print(f"Failed to load previous model. File does not exist: log/{v[0]}_{v[1]}.pkl")
+        raise
 
-    model.learn(total_timesteps=1000000000, callback=callback)
-    model.save("a2c_carla1")
-    print("Done")
 
-    killCarlaSims()
-
+startCarlaSims()
+# Load from previous model:
+if previous_version is not None:
+    model = load_model_from_file(RL_MODULE, previous_version)
+else:
+    model = RL_MODULE(POLICY, env, tensorboard_log='./tensorboard_log')
 
 # clearFrameFolder()
-runCarlaGymTraining()
+
+# Perform learning
+model.learn(total_timesteps=1000000000, callback=callback)
+model.save(f"{model_name}_{n_steps}")
+
+print("Done!")
+
+killCarlaSims()
 
 # makeVideoFromSensorFrames()
