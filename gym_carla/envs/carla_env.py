@@ -5,7 +5,7 @@ import gym
 from gym.spaces import Discrete, Box, Tuple
 import numpy as np
 from gym_carla.carla_utils import *
-
+import cv2
 makeCarlaImportable()
 import carla
 stepsCountEpisode = 0
@@ -154,7 +154,7 @@ class CarlaEnv(gym.Env):
         seg_sensor_blueprint.set_attribute('image_size_x', str(self.imgWidth))
         seg_sensor_blueprint.set_attribute('image_size_y', str(self.imgHeight))
         seg_sensor_blueprint.set_attribute('fov', '110')
-        relative_transform_sensor = carla.Transform(carla.Location(x=2.5, z=0.7))  # Place sensor on the front of car
+        relative_transform_sensor = carla.Transform(carla.Location(x=3, z=3), carla.Rotation(pitch=-45))  # Place sensor on the front of car
 
         # Spawn semantic segmentation sensor, start listening for data and add to actorList
         seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
@@ -181,6 +181,8 @@ class CarlaEnv(gym.Env):
     def step(self, action):
         # global stepsCountEpisode
         # stepsCountEpisode += 1
+
+        action = 3
 
         # Do action
         self._setActionDiscrete(action)
@@ -227,22 +229,13 @@ class CarlaEnv(gym.Env):
 
       # reward += self._rewardSubGoal()             * weight
         reward += self._rewardDriveFarOnRoad()      * 2.00  # Reward
-        reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
+        reward += self._rewardDriveShortOnGrass()   * 2.00  # Penalty
         reward += self._rewardReturnToRoad()        * 0.50  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
-        reward += self._rewardAvoidGrass()          * 0.50  # Penalty
+        # reward += self._rewardAvoidGrass()          * 0.50  # Penalty
         # reward += self._rewardDriveFast()         * 0.10
 
-        if reward > 50000:
-            print(f"self._rewardDriveFarOnRoad() = {self._rewardDriveFarOnRoad() * 2}")
-            print(f"self._rewardDriveShortOnGrass() = {self._rewardDriveShortOnGrass() * 2}")
-            print(f"self._rewardReturnToRoad() = {self._rewardReturnToRoad() * 0.5}")
-
-            print(f"self._metersTraveledSinceLastTick() = {self._metersTraveledSinceLastTick()}")
-            print(f"self._wheelsOnRoad() = {self._wheelsOnRoad()}")
-            print(f"####################################################### {self.episodeReward}")
-
-        self._updateLastTickVariables() # MUST BE LAST THING IN REWARD FUNCTION
+        self._updateLastTickVariables()  # MUST BE LAST THING IN REWARD FUNCTION
 
         return reward
 
@@ -354,7 +347,7 @@ class CarlaEnv(gym.Env):
         # Save images to disk (Output folder)
         # img = Image.fromarray(image, 'RGB')
         # img.save('my.png')
-        # data.save_to_disk('../data/frames/%06d.png' % self.imgFrame*10, cc)
+        # data.save_to_disk('../data/frames/%06d.png' % data.frame)
 
     def _grass_data(self, event):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
