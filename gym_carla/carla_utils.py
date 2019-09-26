@@ -20,7 +20,7 @@ class Action(Enum):
     # TURN_RIGHT_AND_BRAKE = 8
 
 DISCRETE_ACTIONS = {
-    Action.DO_NOTHING: None,
+    Action.DO_NOTHING: [0, 0, 0],
     Action.TURN_LEFT: [0.0, 0.0, -0.5],
     Action.TURN_RIGHT: [0.0, 0.0, 0.5],
     Action.FORWARD: [0.85, 0.0, 0.0],

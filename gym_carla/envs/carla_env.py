@@ -58,11 +58,14 @@ class CarlaEnv(gym.Env):
         # print(stepsCountEpisode)
         # stepsCountEpisode = 0
 
-        # print('Reward: ' + str(self.episodeReward))
-        self.episodeReward = 0
-
+        print('Reward: ' + str(self.episodeReward))
         # Destroy all previous actors, and clear actor list
         self._resetActorList()
+        self._resetInstanceVariables()
+
+        self.episodeReward = 0
+        # print(self.episodeReward)
+        # print("############################")
 
         # Create new actors and add to actor list
         self._createActors()
@@ -73,7 +76,9 @@ class CarlaEnv(gym.Env):
         self._setActionDiscrete(Action.BRAKE.value)
 
         # Wait for camera to send first image
+        # print("WAIT")
         self._waitForWorldToBeReady()
+        # print("WAIT DONE")
 
         # Set last tick variables to equal starting pos information
         self.car_last_tick_pos = self.vehicle.get_location()
@@ -86,6 +91,21 @@ class CarlaEnv(gym.Env):
         self.episodeStartTime = time.time()
 
         return self.imgFrame  # Returns initial observation (First image)
+
+    def _resetInstanceVariables(self):
+        # Declare variables for later use
+        self.vehicle = None
+        self.segSensor = None
+        # self.colSensor = None
+        self.grassSensor = None
+        self.imgFrame = None
+        self.wheelsOnGrass = None
+        self.episodeStartTime = None
+        self.episodeReward = None
+
+        # Declare reward dependent values
+        self.car_last_tick_pos = None
+        self.car_last_tick_wheels_on_road = None
 
     def _createActors(self):
         # Spawn vehicle
@@ -113,6 +133,7 @@ class CarlaEnv(gym.Env):
     def _waitForWorldToBeReady(self):
         while self._isWorldNotReady():
             if settings.AGENT_SYNCED: self.world.tick()
+        # if settings.AGENT_SYNCED: self.world.tick()
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
@@ -170,17 +191,17 @@ class CarlaEnv(gym.Env):
         # Update reward
         reward = self._calcRewardNew()
         self.episodeReward += reward
-
+        # print('Reward: \t' + str(self.episodeReward) + "\t - " + str(reward))
         return self.imgFrame, reward, self._isDone(), {}
 
     # Applies a discrete action to the vehicle
     def _setActionDiscrete(self, action):
-        if action != Action.DO_NOTHING.value:  # If action does something, apply action
-            self.vehicle.apply_control(carla.VehicleControl(
-                throttle=DISCRETE_ACTIONS[Action(action)][0],
-                brake=DISCRETE_ACTIONS[Action(action)][1],
-                steer=DISCRETE_ACTIONS[Action(action)][2])
-            )
+        # If action does something, apply action
+        self.vehicle.apply_control(carla.VehicleControl(
+            throttle=DISCRETE_ACTIONS[Action(action)][0],
+            brake=DISCRETE_ACTIONS[Action(action)][1],
+            steer=DISCRETE_ACTIONS[Action(action)][2])
+        )
 
     # Applies a box action to the vehicle
     def _setActionBox(self, action):
@@ -204,14 +225,30 @@ class CarlaEnv(gym.Env):
     def _calcRewardNew(self):
         reward = 0
 
-      # reward += self._rewardSubGoal()      * weight
-        reward += self._rewardDriveFar()     * 1.00
-        reward += self._rewardStayOnRoad()   * 0.50
-        reward += self._rewardAvoidGrass()   * 0.50
-        reward += self._rewardReturnToRoad() * 0.25
-        # reward += self._rewardDriveFast()    * 0.10
+      # reward += self._rewardSubGoal()             * weight
+        reward += self._rewardDriveFarOnRoad()      * 2.00  # Reward
+        reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
+        reward += self._rewardReturnToRoad()        * 0.50  # Reward / Penalty
+        # reward += self._rewardStayOnRoad()          * 0.05  # Reward
+        reward += self._rewardAvoidGrass()          * 0.50  # Penalty
+        # reward += self._rewardDriveFast()         * 0.10
+
+        if reward > 50000:
+            print(f"self._rewardDriveFarOnRoad() = {self._rewardDriveFarOnRoad() * 2}")
+            print(f"self._rewardDriveShortOnGrass() = {self._rewardDriveShortOnGrass() * 2}")
+            print(f"self._rewardReturnToRoad() = {self._rewardReturnToRoad() * 0.5}")
+
+            print(f"self._metersTraveledSinceLastTick() = {self._metersTraveledSinceLastTick()}")
+            print(f"self._wheelsOnRoad() = {self._wheelsOnRoad()}")
+            print(f"####################################################### {self.episodeReward}")
+
+        self._updateLastTickVariables() # MUST BE LAST THING IN REWARD FUNCTION
 
         return reward
+
+    def _updateLastTickVariables(self):
+        self.car_last_tick_pos = self.vehicle.get_location()
+        self.car_last_tick_wheels_on_road = self._wheelsOnRoad()
 
     def _rewardStayOnRoad(self):
         return self._wheelsOnRoad() * 2.5
@@ -223,7 +260,13 @@ class CarlaEnv(gym.Env):
         return (self._getCarVelocity() / 50) * self._rewardStayOnRoad()
 
     def _rewardDriveFar(self):
-        return self._metersTraveledSinceLastTick() * 10
+        return self._metersTraveledSinceLastTick() * 50
+
+    def _rewardDriveFarOnRoad(self):
+        return self._rewardDriveFar() * self._wheelsOnRoad()
+
+    def _rewardDriveShortOnGrass(self):
+        return -(self._rewardDriveFar() * self.wheelsOnGrass)
 
     def _rewardReturnToRoad(self):
         wheel_diff = self._wheelsOnRoadDiffFromLastTick()
@@ -247,9 +290,6 @@ class CarlaEnv(gym.Env):
         z_diff = current.z - last.z
 
         distance_traveled = math.sqrt(x_diff**2 + y_diff**2 + z_diff**2)
-
-        # Set last to equal current
-        self.car_last_tick_pos = current
 
         # Return distance traveled in meters
         return distance_traveled
@@ -282,7 +322,7 @@ class CarlaEnv(gym.Env):
         car_on_grass = self._isCarOnGrass()
         max_negative_reward = self._isCarOnGrass()
 
-        return episode_expired or car_on_grass or max_negative_reward
+        return episode_expired # or car_on_grass or max_negative_reward
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
