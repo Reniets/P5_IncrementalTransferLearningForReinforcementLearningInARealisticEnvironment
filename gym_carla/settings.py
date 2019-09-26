@@ -5,6 +5,7 @@ CARLA_SIMS = [['localhost', 3000, 'Curve2']]  # Possible simulations that can be
 SECONDS_PER_EPISODE = 5  # Number of seconds of each episode
 IMG_WIDTH = 100
 IMG_HEIGHT = 100
+VIDEO_EXPORT_RATE = 100
 
 # Agent settings
 AGENT_SYNCED = True  # Synchronizes agent with frame updates from Carla
