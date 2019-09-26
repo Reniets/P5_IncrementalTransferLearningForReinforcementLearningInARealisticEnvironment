@@ -71,15 +71,7 @@ class CarlaEnv(gym.Env):
         self.actorList.append(self.vehicle)  # Add to list of actors which makes it easy to clean up later
 
         # Make segmentation sensor blueprint
-        segSensorBlueprint = self.blueprintLibrary.find('sensor.camera.semantic_segmentation')
-        segSensorBlueprint.set_attribute('image_size_x', str(self.imgWidth))
-        segSensorBlueprint.set_attribute('image_size_y', str(self.imgHeight))
-        segSensorBlueprint.set_attribute('fov', '110')
-        relativeTransformSensor = carla.Transform(carla.Location(x=2.5, z=0.7))  # Place sensor on the front of car
-
-        # Spawn semantic segmentation sensor, start listening for data and add to actorList
-        self.segSensor = self.world.spawn_actor(segSensorBlueprint, relativeTransformSensor, attach_to=self.vehicle)
-        self.segSensor.listen(self._processImage)
+        self.segSensor = self._createSegmentationSensor()
         self.actorList.append(self.segSensor)
 
         # TODO: Make some system that allows previewing episodes once in a while
@@ -88,16 +80,11 @@ class CarlaEnv(gym.Env):
         self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
 
         # Create grass sensor
-        grassBlueprint = self.blueprintLibrary.find('sensor.other.safe_distance')
-        grassBlueprint.set_attribute('safe_distance_z_height', '60')
-        grassBlueprint.set_attribute('safe_distance_z_origin', '10')
-        self.grassSensor = self.world.spawn_actor(grassBlueprint, carla.Transform(), attach_to=self.vehicle)
-        self.grassSensor.listen(self._grass_data)
+        self.grassSensor = self._createGrassSensor()
         self.actorList.append(self.grassSensor)
 
         # Wait for camera to send first image
-        while self.imgFrame is None or self.wheelsOnGrass != 0:
-            if settings.AGENT_SYNCED: self.world.tick()
+        self._waitForWorldToBeReady()
 
         # Disengage brakes from earlier workaround
         self.vehicle.apply_control(carla.VehicleControl(brake=0.0))
@@ -107,13 +94,65 @@ class CarlaEnv(gym.Env):
 
         return self.imgFrame  # Returns initial observation (First image)
 
+    # Waits until the world is ready for training
+    def _waitForWorldToBeReady(self):
+        while self._isWorldNotReady():
+            if settings.AGENT_SYNCED: self.world.tick()
+
+    # Returns true if the world is not yet ready for training
+    def _isWorldNotReady(self):
+        return self.imgFrame is None or self.wheelsOnGrass != 0
+
+    # Creates a new segmentation sensor and spawns it into the world as an actor
+    # Returns the sensor
+    def _createSegmentationSensor(self):
+        # Make segmentation sensor blueprint
+        seg_sensor_blueprint = self.blueprintLibrary.find('sensor.camera.semantic_segmentation')
+        seg_sensor_blueprint.set_attribute('image_size_x', str(self.imgWidth))
+        seg_sensor_blueprint.set_attribute('image_size_y', str(self.imgHeight))
+        seg_sensor_blueprint.set_attribute('fov', '110')
+        relative_transform_sensor = carla.Transform(carla.Location(x=2.5, z=0.7))  # Place sensor on the front of car
+
+        # Spawn semantic segmentation sensor, start listening for data and add to actorList
+        seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
+        seg_sensor.listen(self._processImage)
+
+        return seg_sensor
+
+    # Creates a new grass sensor and spawns it into the world as an actor
+    # Returns the sensor
+    def _createGrassSensor(self):
+        # Sensor blueprint
+        grass_blueprint = self.blueprintLibrary.find('sensor.other.safe_distance')
+        grass_blueprint.set_attribute('safe_distance_z_height', '60')
+        grass_blueprint.set_attribute('safe_distance_z_origin', '10')
+
+        # Grass sensor actor
+        grass_sensor = self.world.spawn_actor(grass_blueprint, carla.Transform(), attach_to=self.vehicle)
+        grass_sensor.listen(self._grass_data)
+
+        # Return created actor
+        return grass_sensor
+
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
         # global stepsCountEpisode
         # stepsCountEpisode += 1
 
         # Do action
-        # Discrete
+        self._setActionDiscrete(action)
+        # self._setActionBox(action)
+
+        if settings.AGENT_SYNCED: self.world.tick()
+
+        # Update reward
+        reward = self._calcReward()
+        self.episodeReward += reward
+
+        return self.imgFrame, reward, self._isDone(), {}
+
+    # Applies a discrete action to the vehicle
+    def _setActionDiscrete(self, action):
         if action != Action.DO_NOTHING.value:  # If action does something, apply action
             self.vehicle.apply_control(carla.VehicleControl(
                 throttle=DISCRETE_ACTIONS[Action(action)][0],
@@ -121,40 +160,57 @@ class CarlaEnv(gym.Env):
                 steer=DISCRETE_ACTIONS[Action(action)][2])
             )
 
-        if settings.AGENT_SYNCED: self.world.tick()
+    # Applies a box action to the vehicle
+    def _setActionBox(self, action):
+        self.vehicle.apply_control(carla.VehicleControl(
+            steer=float(action[0]),
+            brake=float(action[1]),
+            throttle=float(action[2])
+        ))
 
-        # Box
-        # self.vehicle.apply_control(carla.VehicleControl(
-        #     steer=float(action[0]),
-        #     brake=float(action[1]),
-        #     throttle=float(action[2])
-        # ))
-
-        # Initialize return information
-        obsFrame = self.imgFrame
-        wheelsOnGrass = self.wheelsOnGrass
+    # Returns the reward for the current state
+    def _calcReward(self):
         reward = 0
-        done = False
-        vel = self.vehicle.get_velocity()
-        speed = 3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)  # Speed in km/h (From m/s)
-        expectedSpeed = 20
+        speed = self._getCarVelocity()
+        expected_speed = 20
 
-        reward += (speed/expectedSpeed) * (4-wheelsOnGrass)
-        reward -= wheelsOnGrass
+        reward += (speed / expected_speed) * self._wheelsOnRoad()
+        reward -= self.wheelsOnGrass
 
-        # If car collided end episode and give a penalty
-        # if wheelsOnGrass == 4 or self.episodeReward < -500:
-        #     done = True
-        #     reward -= 100
-        #     print("Wheels")
+        return reward
 
+    # Returns the amount of wheels on the road
+    def _wheelsOnRoad(self):
+        return 4 - self.wheelsOnGrass
+
+    # Returns the cars current velocity in km/h
+    def _getCarVelocity(self):
+        vel_vec = self.vehicle.get_velocity()                               # The velocity vector
+        mps = math.sqrt(vel_vec.x ** 2 + vel_vec.y ** 2 + vel_vec.z ** 2)   # Meter pr. second
+        kph = mps * 3.6  # Speed in km/h (From m/s)                         # Km pr hour
+
+        return kph
+
+    # Returns true if the current episode should be stopped
+    def _isDone(self):
         # If episode length is exceeded it is done
-        if (self.episodeStartTime + self.episodeLen) < time.time():
-            done = True
+        episode_expired = self._isEpisodeExpired()
+        car_on_grass = self._isCarOnGrass()
+        max_negative_reward = self._isCarOnGrass()
 
-        self.episodeReward += reward
+        return episode_expired # or car_on_gras or max_negative_reward
 
-        return obsFrame, reward, done, {}
+    # Returns true if the current max episode time has elapsed
+    def _isEpisodeExpired(self):
+        return (self.episodeStartTime + self.episodeLen) < time.time()
+
+    # Returns true if all four wheels are not on the road
+    def _isCarOnGrass(self):
+        return self.wheelsOnGrass == 4
+
+    # Returns true if the maximum negative reward has been accumulated
+    def _isMaxNegativeRewardAccumulated(self):
+        return self.episodeReward < -500
 
     '''Each time step, model predicts and steps an action, after which render is called'''
     def render(self, mode='human'):
