@@ -182,8 +182,6 @@ class CarlaEnv(gym.Env):
         # global stepsCountEpisode
         # stepsCountEpisode += 1
 
-        action = 3
-
         # Do action
         self._setActionDiscrete(action)
         # self._setActionBox(action)

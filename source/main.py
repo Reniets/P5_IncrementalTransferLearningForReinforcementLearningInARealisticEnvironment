@@ -17,6 +17,7 @@ from gym_carla.envs.carla_env import CarlaEnv
 
 n_steps = 0
 
+startCarlaSims()
 # Setup environment
 env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
 
@@ -54,7 +55,6 @@ def load_model_from_file(module, v):
         raise
 
 
-startCarlaSims()
 # Load from previous model:
 if previous_version is not None:
     model = load_model_from_file(RL_MODULE, previous_version)
