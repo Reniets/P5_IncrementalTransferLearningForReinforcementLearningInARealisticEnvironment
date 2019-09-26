@@ -20,7 +20,6 @@ class CarlaEnv(gym.Env):
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
         self.blueprintLibrary = self.world.get_blueprint_library()
-        self.vehicleBlueprint = self.blueprintLibrary.filter('model3')[0]
         # Sensors and helper lists
         # self.collisionHist = []
         self.actorList = []
@@ -114,8 +113,9 @@ class CarlaEnv(gym.Env):
     # Creates a new vehicle and spawns it into the world as an actor
     # Returns the vehicle
     def _createNewVehicle(self):
+        vehicle_blueprint = self.blueprintLibrary.filter('model3')[0]
         vehicle_spawn_transform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
-        return self.world.spawn_actor(self.vehicleBlueprint, vehicle_spawn_transform)  # Spawn vehicle
+        return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle
 
     # Creates a new segmentation sensor and spawns it into the world as an actor
     # Returns the sensor
