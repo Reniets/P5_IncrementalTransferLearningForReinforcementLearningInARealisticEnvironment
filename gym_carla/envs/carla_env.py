@@ -36,6 +36,10 @@ class CarlaEnv(gym.Env):
         self.sql = Sql()
         self.sessionId = self.sql.INSERT_newSession("My Random Name")
 
+        # Early stopping variables
+        self.grassLocation = None
+        self.grassStuckTick = 0
+
         # Declare variables for later use
         self.vehicle = None
         self.segSensor = None
@@ -119,6 +123,10 @@ class CarlaEnv(gym.Env):
         self.wheelsOnGrass = None
         self.episodeTicks = 0
         self.episodeReward = None
+
+        # Early stopping
+        self.grassLocation = None
+        self.grassStuckTick = 0
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
@@ -359,10 +367,11 @@ class CarlaEnv(gym.Env):
     def _isDone(self):
         # If episode length is exceeded it is done
         episode_expired = self._isEpisodeExpired()
+        is_stuck_on_grass = self._isStuckOnGrass()
         car_on_grass = self._isCarOnGrass()
         max_negative_reward = self._isCarOnGrass()
 
-        return episode_expired # or car_on_grass or max_negative_reward
+        return episode_expired or is_stuck_on_grass  # or car_on_grass or max_negative_reward
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
@@ -375,6 +384,9 @@ class CarlaEnv(gym.Env):
     # Returns true if the maximum negative reward has been accumulated
     def _isMaxNegativeRewardAccumulated(self):
         return self.episodeReward < -500
+
+    def _isStuckOnGrass(self):
+        return self.wheelsOnGrass == 4 and self._metersTraveledSinceLastTick() == 0.0
 
     '''Each time step, model predicts and steps an action, after which render is called'''
     def render(self, mode='human'):
