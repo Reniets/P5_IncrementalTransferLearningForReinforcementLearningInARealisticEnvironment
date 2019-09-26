@@ -37,6 +37,10 @@ class CarlaEnv(gym.Env):
         self.episodeStartTime = None
         self.episodeReward = None
 
+        # Declare reward dependent values
+        self.car_last_tick_pos = None
+        self.car_last_tick_wheels_on_road = None
+
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
 
@@ -66,13 +70,17 @@ class CarlaEnv(gym.Env):
         # TODO: Make some system that allows previewing episodes once in a while
 
         # Workaround to start episode as quickly as possible
-        self._setActionDiscrete(Action.BRAKE)
+        self._setActionDiscrete(Action.BRAKE.value)
 
         # Wait for camera to send first image
         self._waitForWorldToBeReady()
 
+        # Set last tick variables to equal starting pos information
+        self.car_last_tick_pos = self.vehicle.get_location()
+        self.car_last_tick_wheels_on_road = 4
+
         # Disengage brakes from earlier workaround
-        self._setActionDiscrete(Action.DO_NOTHING)
+        self._setActionDiscrete(Action.DO_NOTHING.value)
 
         # Start episode timer
         self.episodeStartTime = time.time()
@@ -160,7 +168,7 @@ class CarlaEnv(gym.Env):
         if settings.AGENT_SYNCED: self.world.tick()
 
         # Update reward
-        reward = self._calcReward()
+        reward = self._calcRewardNew()
         self.episodeReward += reward
 
         return self.imgFrame, reward, self._isDone(), {}
@@ -193,6 +201,68 @@ class CarlaEnv(gym.Env):
 
         return reward
 
+    def _calcRewardNew(self):
+        reward = 0
+
+      # reward += self._rewardSubGoal()      * weight
+        reward += self._rewardDriveFar()     * 1.00
+        reward += self._rewardStayOnRoad()   * 0.50
+        reward += self._rewardAvoidGrass()   * 0.50
+        reward += self._rewardReturnToRoad() * 0.25
+        # reward += self._rewardDriveFast()    * 0.10
+
+        return reward
+
+    def _rewardStayOnRoad(self):
+        return self._wheelsOnRoad() * 2.5
+
+    def _rewardAvoidGrass(self):
+        return self.wheelsOnGrass * (-2.5)
+
+    def _rewardDriveFast(self):
+        return (self._getCarVelocity() / 50) * self._rewardStayOnRoad()
+
+    def _rewardDriveFar(self):
+        return self._metersTraveledSinceLastTick() * 10
+
+    def _rewardReturnToRoad(self):
+        wheel_diff = self._wheelsOnRoadDiffFromLastTick()
+
+        if wheel_diff > 0:
+            return wheel_diff * 25
+        elif wheel_diff < 0:
+            return wheel_diff * (-50)
+        else:
+            return 0
+
+    # Returns the amount of meters traveled since last tick
+    # and updated last pos to current pos
+    def _metersTraveledSinceLastTick(self):
+        # Calculate meters driven
+        last = self.car_last_tick_pos
+        current = self.vehicle.get_location()
+
+        x_diff = current.x - last.x
+        y_diff = current.y - last.y
+        z_diff = current.z - last.z
+
+        distance_traveled = math.sqrt(x_diff**2 + y_diff**2 + z_diff**2)
+
+        # Set last to equal current
+        self.car_last_tick_pos = current
+
+        # Return distance traveled in meters
+        return distance_traveled
+
+    # Returns the difference from current tick to last tick of how many wheels are currently on the road
+    # Also updates last to current tick
+    def _wheelsOnRoadDiffFromLastTick(self):
+        last = self.car_last_tick_wheels_on_road
+        current = self._wheelsOnRoad()
+        diff = current - last
+
+        return diff
+
     # Returns the amount of wheels on the road
     def _wheelsOnRoad(self):
         return 4 - self.wheelsOnGrass
@@ -212,7 +282,7 @@ class CarlaEnv(gym.Env):
         car_on_grass = self._isCarOnGrass()
         max_negative_reward = self._isCarOnGrass()
 
-        return episode_expired # or car_on_gras or max_negative_reward
+        return episode_expired or car_on_grass or max_negative_reward
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
