@@ -91,7 +91,7 @@ def startCarlaSims():
     killCarlaSims()
 
     for host in range(settings.CARLA_SIMS_NO):
-        subprocess.Popen(['./CarlaUE4.sh' + ' -windowed -ResX=200 -ResY=200 -fps=1 -carla-rpc-port=' + str(settings.CARLA_SIMS[host][1])], cwd=settings.CARLA_PATH, shell=True)
+        subprocess.Popen(['./CarlaUE4.sh' + ' -windowed -ResX=400 -ResY=400 -fps=1 -carla-rpc-port=' + str(settings.CARLA_SIMS[host][1])], cwd=settings.CARLA_PATH, shell=True)
         time.sleep(4)  # If DISPLAY is off, sleep longer
 
     for host in range(settings.CARLA_SIMS_NO):

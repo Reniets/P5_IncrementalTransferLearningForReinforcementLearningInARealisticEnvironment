@@ -19,7 +19,14 @@ n_steps = 0
 
 startCarlaSims()
 # Setup environment
-env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0') for i in range(settings.CARLA_SIMS_NO)])
+
+
+envsList = []
+for i in range(settings.CARLA_SIMS_NO):
+    envsList.append(lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i))
+
+print(envsList)
+env = SubprocVecEnv(envsList)
 
 # Decide which RL module and policy
 RL_MODULE = PPO2

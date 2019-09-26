@@ -12,7 +12,9 @@ stepsCountEpisode = 0
 
 class CarlaEnv(gym.Env):
 
-    def __init__(self, carlaInstance=0):
+    def __init__(self, carlaInstance):
+        print(carlaInstance)
+        self.carlaInstance = carlaInstance
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
         self.client.set_timeout(2.0)
@@ -58,7 +60,6 @@ class CarlaEnv(gym.Env):
         # print(stepsCountEpisode)
         # stepsCountEpisode = 0
 
-        print('Reward: ' + str(self.episodeReward))
         # Destroy all previous actors, and clear actor list
         self._resetActorList()
         self._resetInstanceVariables()
