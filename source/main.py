@@ -22,7 +22,7 @@ startCarlaSims()
 env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
 
 # Decide which RL module and policy
-RL_MODULE = A2C
+RL_MODULE = PPO2
 POLICY = CnnLstmPolicy
 # give model name
 model_name = "best_model_discrete_new_rewards"
@@ -59,7 +59,8 @@ def load_model_from_file(module, v):
 if previous_version is not None:
     model = load_model_from_file(RL_MODULE, previous_version)
 else:
-    model = RL_MODULE(POLICY, env, tensorboard_log='./tensorboard_log')
+    print("NEW")
+    model = RL_MODULE(POLICY, env, nminibatches=1, tensorboard_log='./tensorboard_log')
 
 # clearFrameFolder()
 
