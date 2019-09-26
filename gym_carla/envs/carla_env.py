@@ -1,4 +1,5 @@
 import math
+from PIL import Image
 
 import gym
 from gym.spaces import Discrete, Box, Tuple
@@ -7,12 +8,11 @@ from gym_carla.carla_utils import *
 
 makeCarlaImportable()
 import carla
-
+stepsCountEpisode = 0
 
 class CarlaEnv(gym.Env):
 
     def __init__(self, carlaInstance=0):
-
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
         self.client.set_timeout(2.0)
@@ -21,9 +21,8 @@ class CarlaEnv(gym.Env):
         self.world = self.client.get_world()
         self.blueprintLibrary = self.world.get_blueprint_library()
         self.vehicleBlueprint = self.blueprintLibrary.filter('model3')[0]
-
         # Sensors and helper lists
-        self.collisionHist = []
+        # self.collisionHist = []
         self.actorList = []
         self.imgWidth = settings.IMG_WIDTH
         self.imgHeight = settings.IMG_HEIGHT
@@ -32,9 +31,12 @@ class CarlaEnv(gym.Env):
         # Declare variables for later use
         self.vehicle = None
         self.segSensor = None
-        self.colSensor = None
+        # self.colSensor = None
+        self.grassSensor = None
         self.imgFrame = None
+        self.wheelsOnGrass = None
         self.episodeStartTime = None
+        self.episodeReward = None
 
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
@@ -42,9 +44,20 @@ class CarlaEnv(gym.Env):
         # Defines observation and action spaces
         self.observation_space = imageSpace
         self.action_space = Discrete(len(DISCRETE_ACTIONS))
+        # self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)    # Steer,
+
+        if settings.AGENT_SYNCED: self.world.tick()
+
 
     ''':returns initial observation'''
     def reset(self):
+        global stepsCountEpisode
+        # print(stepsCountEpisode)
+        stepsCountEpisode = 0
+
+        print('Reward: ' + str(self.episodeReward))
+        self.episodeReward = 0
+
         # Destroy all actors from previous episode
         for actor in self.actorList:
             actor.destroy()
@@ -73,20 +86,18 @@ class CarlaEnv(gym.Env):
 
         # Workaround to start episode as quickly as possible
         self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
-        time.sleep(4)
 
-        # Clear collision history
-        self.collisionHist = []
-
-        # Create collision sensor
-        colSensorBlueprint = self.world.get_blueprint_library().find('sensor.other.collision')  # Get blueprint
-        self.colSensor = self.world.spawn_actor(colSensorBlueprint, carla.Transform(), attach_to=self.vehicle)  # Create colSensor actor and attach to vehicle
-        self.colSensor.listen(self._collision_data)  # Make it listen for collisions
-        self.actorList.append(self.colSensor)  # Add to actorList
+        # Create grass sensor
+        grassBlueprint = self.blueprintLibrary.find('sensor.other.safe_distance')
+        grassBlueprint.set_attribute('safe_distance_z_height', '60')
+        grassBlueprint.set_attribute('safe_distance_z_origin', '10')
+        self.grassSensor = self.world.spawn_actor(grassBlueprint, carla.Transform(), attach_to=self.vehicle)
+        self.grassSensor.listen(self._grass_data)
+        self.actorList.append(self.grassSensor)
 
         # Wait for camera to send first image
-        while self.imgFrame is None:
-            time.sleep(0.05)
+        while self.imgFrame is None or self.wheelsOnGrass != 0:
+            if settings.AGENT_SYNCED: self.world.tick()
 
         # Disengage brakes from earlier workaround
         self.vehicle.apply_control(carla.VehicleControl(brake=0.0))
@@ -94,57 +105,80 @@ class CarlaEnv(gym.Env):
         # Start episode timer
         self.episodeStartTime = time.time()
 
-        return self.imgFrame  # Returns initial observation (First image and speed of 0)
+        return self.imgFrame  # Returns initial observation (First image)
 
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
+        global stepsCountEpisode
+        stepsCountEpisode += 1
+
         # Initialize return information
-        obs = self.imgFrame
+        obsFrame = self.imgFrame
+        wheelsOnGrass = self.wheelsOnGrass
         reward = 0
         done = False
 
+        # Discrete
         if action != Action.DO_NOTHING.value:  # If action does something, apply action
-            self.vehicle.apply_control(carla.VehicleControl(throttle=DISCRETE_ACTIONS[Action(action)][0], brake=DISCRETE_ACTIONS[Action(action)][1], steer=DISCRETE_ACTIONS[Action(action)][2]))
+            self.vehicle.apply_control(carla.VehicleControl(
+                throttle=DISCRETE_ACTIONS[Action(action)][0],
+                brake=DISCRETE_ACTIONS[Action(action)][1],
+                steer=DISCRETE_ACTIONS[Action(action)][2])
+            )
 
-        v = self.vehicle.get_velocity()
+        # Box
+        # self.vehicle.apply_control(carla.VehicleControl(
+        #     steer=float(action[0]),
+        #     brake=float(action[1]),
+        #     throttle=float(action[2])
+        # ))
+
+        vel = self.vehicle.get_velocity()
+        speed = 3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)  # Speed in km/h (From m/s)
+        expectedSpeed = 20
+
+        reward += (speed/expectedSpeed) * (4-wheelsOnGrass)
+        reward -= wheelsOnGrass
 
         # If car collided end episode and give a penalty
-        if len(self.collisionHist) != 0:
-            done = True
-            reward = -1
+        # if wheelsOnGrass == 4 or self.episodeReward < -500:
+        #     done = True
+        #     reward -= 100
+        #     print("Wheels")
 
         # If episode length is exceeded it is done
         if (self.episodeStartTime + self.episodeLen) < time.time():
+            print("Time")
             done = True
 
-        # TODO: Calculate rewards based on speed and driving surface
+        self.episodeReward += reward
 
-        return obs, reward, done, {}
-
+        if settings.AGENT_SYNCED: self.world.tick()
+        return obsFrame, reward, done, {}
 
     '''Each time step, model predicts and steps an action, after which render is called'''
     def render(self, mode='human'):
         pass
 
     def _processImage(self, data):
+        cc = carla.ColorConverter.CityScapesPalette
+        data.convert(cc)
         # Get image, reshape and remove alpha channel
         image = np.array(data.raw_data)
         image = image.reshape((self.imgHeight, self.imgWidth, 4))
         image = image[:, :, :3]
 
+        # bgra
         self.imgFrame = image
 
-    def _collision_data(self, event):
-        # What we collided with and what was the impulse
-        #collision_actor_id = event.other_actor.type_id
-        #collision_impulse = math.sqrt(event.normal_impulse.x ** 2 + event.normal_impulse.y ** 2 + event.normal_impulse.z ** 2)
+        # Save images to disk (Output folder)
+        # img = Image.fromarray(image, 'RGB')
+        # img.save('my.png')
+        # data.save_to_disk('../data/frames/%06d.png' % self.imgFrame*10, cc)
 
-        # TODO: Register whether it was grass or wall and give reward based on it
-
-        self.collisionHist.append(event)
-
-
-
+    def _grass_data(self, event):
+        self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
+        # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
 
 
 
