@@ -58,41 +58,49 @@ class CarlaEnv(gym.Env):
         # print('Reward: ' + str(self.episodeReward))
         self.episodeReward = 0
 
-        # Destroy all actors from previous episode
-        for actor in self.actorList:
-            actor.destroy()
+        # Destroy all previous actors, and clear actor list
+        self._resetActorList()
 
-        # Clear all actors from the list from previous episode
-        self.actorList = []
+        # Create new actors and add to actor list
+        self._createActors()
 
+        # TODO: Make some system that allows previewing episodes once in a while
+
+        # Workaround to start episode as quickly as possible
+        self._setActionDiscrete(Action.BRAKE)
+
+        # Wait for camera to send first image
+        self._waitForWorldToBeReady()
+
+        # Disengage brakes from earlier workaround
+        self._setActionDiscrete(Action.DO_NOTHING)
+
+        # Start episode timer
+        self.episodeStartTime = time.time()
+
+        return self.imgFrame  # Returns initial observation (First image)
+
+    def _createActors(self):
         # Spawn vehicle
-        vehicleSpawnTransform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
-        self.vehicle = self.world.spawn_actor(self.vehicleBlueprint, vehicleSpawnTransform)  # Spawn vehicle
+        self.vehicle = self._createNewVehicle()
         self.actorList.append(self.vehicle)  # Add to list of actors which makes it easy to clean up later
 
         # Make segmentation sensor blueprint
         self.segSensor = self._createSegmentationSensor()
         self.actorList.append(self.segSensor)
 
-        # TODO: Make some system that allows previewing episodes once in a while
-
-        # Workaround to start episode as quickly as possible
-        self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, brake=1.0))
-
         # Create grass sensor
         self.grassSensor = self._createGrassSensor()
         self.actorList.append(self.grassSensor)
 
-        # Wait for camera to send first image
-        self._waitForWorldToBeReady()
+    # Destroy all previous actors, and clear actor list
+    def _resetActorList(self):
+        # Destroy all actors from previous episode
+        for actor in self.actorList:
+            actor.destroy()
 
-        # Disengage brakes from earlier workaround
-        self.vehicle.apply_control(carla.VehicleControl(brake=0.0))
-
-        # Start episode timer
-        self.episodeStartTime = time.time()
-
-        return self.imgFrame  # Returns initial observation (First image)
+        # Clear all actors from the list from previous episode
+        self.actorList = []
 
     # Waits until the world is ready for training
     def _waitForWorldToBeReady(self):
@@ -102,6 +110,12 @@ class CarlaEnv(gym.Env):
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
         return self.imgFrame is None or self.wheelsOnGrass != 0
+
+    # Creates a new vehicle and spawns it into the world as an actor
+    # Returns the vehicle
+    def _createNewVehicle(self):
+        vehicle_spawn_transform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
+        return self.world.spawn_actor(self.vehicleBlueprint, vehicle_spawn_transform)  # Spawn vehicle
 
     # Creates a new segmentation sensor and spawns it into the world as an actor
     # Returns the sensor
