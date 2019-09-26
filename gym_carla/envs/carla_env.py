@@ -51,11 +51,11 @@ class CarlaEnv(gym.Env):
 
     ''':returns initial observation'''
     def reset(self):
-        global stepsCountEpisode
+        # global stepsCountEpisode
         # print(stepsCountEpisode)
-        stepsCountEpisode = 0
+        # stepsCountEpisode = 0
 
-        print('Reward: ' + str(self.episodeReward))
+        # print('Reward: ' + str(self.episodeReward))
         self.episodeReward = 0
 
         # Destroy all actors from previous episode
@@ -109,15 +109,10 @@ class CarlaEnv(gym.Env):
 
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
-        global stepsCountEpisode
-        stepsCountEpisode += 1
+        # global stepsCountEpisode
+        # stepsCountEpisode += 1
 
-        # Initialize return information
-        obsFrame = self.imgFrame
-        wheelsOnGrass = self.wheelsOnGrass
-        reward = 0
-        done = False
-
+        # Do action
         # Discrete
         if action != Action.DO_NOTHING.value:  # If action does something, apply action
             self.vehicle.apply_control(carla.VehicleControl(
@@ -126,6 +121,8 @@ class CarlaEnv(gym.Env):
                 steer=DISCRETE_ACTIONS[Action(action)][2])
             )
 
+        if settings.AGENT_SYNCED: self.world.tick()
+
         # Box
         # self.vehicle.apply_control(carla.VehicleControl(
         #     steer=float(action[0]),
@@ -133,6 +130,11 @@ class CarlaEnv(gym.Env):
         #     throttle=float(action[2])
         # ))
 
+        # Initialize return information
+        obsFrame = self.imgFrame
+        wheelsOnGrass = self.wheelsOnGrass
+        reward = 0
+        done = False
         vel = self.vehicle.get_velocity()
         speed = 3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)  # Speed in km/h (From m/s)
         expectedSpeed = 20
@@ -148,12 +150,10 @@ class CarlaEnv(gym.Env):
 
         # If episode length is exceeded it is done
         if (self.episodeStartTime + self.episodeLen) < time.time():
-            print("Time")
             done = True
 
         self.episodeReward += reward
 
-        if settings.AGENT_SYNCED: self.world.tick()
         return obsFrame, reward, done, {}
 
     '''Each time step, model predicts and steps an action, after which render is called'''
