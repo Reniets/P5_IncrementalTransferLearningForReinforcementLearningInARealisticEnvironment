@@ -66,13 +66,13 @@ class CarlaEnv(gym.Env):
         # TODO: Make some system that allows previewing episodes once in a while
 
         # Workaround to start episode as quickly as possible
-        self._setActionDiscrete(Action.BRAKE)
+        self._setActionDiscrete(Action.BRAKE.value)
 
         # Wait for camera to send first image
         self._waitForWorldToBeReady()
 
         # Disengage brakes from earlier workaround
-        self._setActionDiscrete(Action.DO_NOTHING)
+        self._setActionDiscrete(Action.DO_NOTHING.value)
 
         # Start episode timer
         self.episodeStartTime = time.time()
