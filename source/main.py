@@ -7,19 +7,19 @@ logging.getLogger("tensorflow").setLevel(logging.CRITICAL)
 logging.getLogger("tensorflow_hub").setLevel(logging.CRITICAL)
 
 import gym
+from gym_carla import settings
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines import *
 from stable_baselines.bench import Monitor
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
-
 from gym_carla.envs.carla_env import CarlaEnv
 
 n_steps = 0
 
 startCarlaSims()
 # Setup environment
-env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
+env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0') for i in range(settings.CARLA_SIMS_NO)])
 
 # Decide which RL module and policy
 RL_MODULE = PPO2
