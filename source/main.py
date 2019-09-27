@@ -36,11 +36,10 @@ agentNum = previous_version[1] + 1 if previous_version is not None and previous_
 
 def callback(_locals, _globals):
     global n_steps, agentNum
-
     n_steps += 1
 
     # Print stats every 20000 calls
-    if n_steps % 150 == 0:
+    if n_steps % 100 == 0:
         print(f"Saving new model: step {n_steps}")
         _locals['self'].save(f"log/{model_name}_{str(agentNum)}.pkl")
         agentNum += 1
@@ -62,8 +61,9 @@ if previous_version is not None:
     model = load_model_from_file(RL_MODULE, previous_version)
 else:
     print("NEW")
-    model = RL_MODULE(POLICY, env, nminibatches=4)
+    model = RL_MODULE(POLICY, env, nminibatches=settings.CARLA_SIMS_NO)
 
+# makeVideoFromSensorFrames()
 # clearFrameFolder()
 
 # Perform learning
@@ -74,4 +74,3 @@ print("Done!")
 
 killCarlaSims()
 
-# makeVideoFromSensorFrames()

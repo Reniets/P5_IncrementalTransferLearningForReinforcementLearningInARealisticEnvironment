@@ -23,7 +23,7 @@ DISCRETE_ACTIONS = {
     Action.DO_NOTHING: [0, 0, 0],
     Action.TURN_LEFT: [0.0, 0.0, -0.5],
     Action.TURN_RIGHT: [0.0, 0.0, 0.5],
-    Action.FORWARD: [0.85, 0.0, 0.0],
+    Action.FORWARD: [0.7, 0.0, 0.0],
     Action.BRAKE: [0.0, 1.0, 0.0]
     # Action.TURN_LEFT_AND_FORWARD: [1.0, 0.0, -0.5],
     # Action.TURN_RIGHT_AND_FORWARD: [1.0, 0.0, 0.5],
@@ -84,14 +84,17 @@ def makeCarlaImportable():
 makeCarlaImportable()
 import carla
 
-
+resWidth = 400
+resHeight = 400
 # Starts Carla simulations and changes their maps
 def startCarlaSims():
     print("Starting Carla...")
     killCarlaSims()
 
     for host in range(settings.CARLA_SIMS_NO):
-        subprocess.Popen(['./CarlaUE4.sh' + ' -windowed -ResX=400 -ResY=400 -fps=1 -carla-rpc-port=' + str(settings.CARLA_SIMS[host][1])], cwd=settings.CARLA_PATH, shell=True)
+        winX = (host*resWidth)+100
+        winY = 1000-resHeight
+        subprocess.Popen(['./CarlaUE4.sh' + f" -windowed -ResX={resWidth} -ResY={resHeight} -WinX={winX} -WinY={winY} -fps=1 -carla-rpc-port={str(settings.CARLA_SIMS[host][1])}"], cwd=settings.CARLA_PATH, shell=True)
         time.sleep(4)  # If DISPLAY is off, sleep longer
 
     for host in range(settings.CARLA_SIMS_NO):

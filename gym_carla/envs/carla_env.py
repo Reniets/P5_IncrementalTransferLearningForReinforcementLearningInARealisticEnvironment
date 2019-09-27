@@ -13,8 +13,8 @@ stepsCountEpisode = 0
 
 class CarlaEnv(gym.Env):
 
-    def __init__(self, carlaInstance):
-        print(carlaInstance)
+    def __init__(self, carlaInstance=0):
+
         self.carlaInstance = carlaInstance
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
@@ -293,7 +293,7 @@ class CarlaEnv(gym.Env):
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
-        # reward += self._rewardAvoidGrass()          * 0.50  # Penalty
+        reward += self._rewardAvoidGrass()          * 1.00  # Penalty
         # reward += self._rewardDriveFast()         * 0.10
 
         self._updateLastTickVariables()  # MUST BE LAST THING IN REWARD FUNCTION
@@ -308,13 +308,13 @@ class CarlaEnv(gym.Env):
         return self._wheelsOnRoad() * 2.5
 
     def _rewardAvoidGrass(self):
-        return self.wheelsOnGrass * (-2.5)
+        return self.wheelsOnGrass * (-0.25)
 
     def _rewardDriveFast(self):
         return (self._getCarVelocity() / 50) * self._rewardStayOnRoad()
 
     def _rewardDriveFar(self):
-        return self._metersTraveledSinceLastTick() * 50
+        return self._metersTraveledSinceLastTick()
 
     def _rewardDriveFarOnRoad(self):
         return self._rewardDriveFar() * self._wheelsOnRoad()
@@ -422,7 +422,7 @@ class CarlaEnv(gym.Env):
         # Save images to disk (Output folder)
         # img = Image.fromarray(image, 'RGB')
         # img.save('my.png')
-        # data.save_to_disk('../data/frames/%06d.png' % data.frame)
+        data.save_to_disk('../data/frames/%06d.png' % data.frame)
 
     def _grass_data(self, event):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
