@@ -6,6 +6,9 @@ from database.sql import Sql
 import numpy as np
 from gym_carla.carla_utils import *
 import cv2
+
+from source.numpyNumbers import NumpyNumbers
+
 makeCarlaImportable()
 import carla
 from PIL import Image
@@ -416,13 +419,43 @@ class CarlaEnv(gym.Env):
 
         # Save image in memory for later video export
         if self._isVideoEpisode():
-            self.episodeFrames.append(image)
-            pass
+            self._storeImageForVideoEpisode(image)
 
         # Save images to disk (Output folder)
         # img = Image.fromarray(image, 'RGB')
         # img.save('my.png')
         data.save_to_disk('../data/frames/%06d.png' % data.frame)
+
+    def _storeImageForVideoEpisode(self, image):
+        image = self._resizeImage(image)
+        self._addFrameDataOverlay(image)
+
+        self.episodeFrames.append(image)
+
+    def _resizeImage(self, image):
+        width = self._getVideoWidth()
+        height = self._getVideoHeight()
+
+        return cv2.resize(image, dsize=(width, height))
+
+    def _getVideoWidth(self):
+        return max(settings.IMG_WIDTH, settings.VIDEO_MAX_WIDTH)
+
+    def _getVideoHeight(self):
+        return max(settings.IMG_HEIGHT, settings.VIDEO_MAX_HEIGHT)
+
+    def _addFrameDataOverlay(self, frame):
+        nn = NumpyNumbers()
+        speed = self._getCarVelocity()
+        overlay = nn.getOverlay(round(speed), self._getVideoWidth(), self._getVideoHeight())
+
+        for a, aa in enumerate(frame):
+            for b, bb in enumerate(aa):
+                for c, frame_pixel in enumerate(bb):
+                    overlay_pixel = overlay[a, b, c]
+
+                    if overlay_pixel != 0:
+                        frame[a, b, c] = overlay_pixel
 
     def _grass_data(self, event):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
