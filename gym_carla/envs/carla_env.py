@@ -62,8 +62,10 @@ class CarlaEnv(gym.Env):
 
         # Defines observation and action spaces
         self.observation_space = imageSpace
-        self.action_space = Discrete(len(DISCRETE_ACTIONS))
-        # self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)    # Steer,
+        # self.action_space = Discrete(len(DISCRETE_ACTIONS))
+        # [Throttle, Steer, brake]
+        self.action_space = Box(np.array([0, 0, -1]), np.array([+1, +1, +1]), dtype=np.float32)    # Steer,
+        # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)    # Steer,
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -243,8 +245,8 @@ class CarlaEnv(gym.Env):
         self.episodeTicks += 1
 
         # Do action
-        self._setActionDiscrete(action)
-        # self._setActionBox(action)
+        # self._setActionDiscrete(action)
+        self._setActionBox(action)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -268,9 +270,9 @@ class CarlaEnv(gym.Env):
     # Applies a box action to the vehicle
     def _setActionBox(self, action):
         self.vehicle.apply_control(carla.VehicleControl(
-            steer=float(action[0]),
+            throttle=float(action[0]),
             brake=float(action[1]),
-            throttle=float(action[2])
+            steer=float(action[2]),
         ))
 
     # Returns the reward for the current state
@@ -420,7 +422,7 @@ class CarlaEnv(gym.Env):
         # Save images to disk (Output folder)
         if settings.VIDEO_ALWAYS_ON and self.carlaInstance == 0:
             cv2.imwrite(f"../data/frames/frame_{data.frame}.png", self._getResizedImageWithOverlay(image))
-            #  data.save_to_disk('../data/frames/%06d.png' % data.frame) # <- Hvad er det vi gør her præcist? Hvorfor det ikke bare image vi gemmer?
+            #  data.save_to_disk('../data/frames/%06d.png' % data.frame)
 
     def _storeImageForVideoEpisode(self, image):
         image = self._getResizedImageWithOverlay(image)
