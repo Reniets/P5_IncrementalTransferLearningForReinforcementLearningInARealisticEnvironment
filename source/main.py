@@ -20,13 +20,7 @@ n_steps = 0
 startCarlaSims()
 # Setup environment
 
-
-envsList = []
-for i in range(settings.CARLA_SIMS_NO):
-    envsList.append(lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i))
-
-print(envsList)
-env = SubprocVecEnv(envsList)
+env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
 # Decide which RL module and policy
 RL_MODULE = PPO2
@@ -43,20 +37,21 @@ agentNum = previous_version[1] + 1 if previous_version is not None and previous_
 def callback(_locals, _globals):
     global n_steps, agentNum
 
+    n_steps += 1
+
     # Print stats every 20000 calls
-    if (n_steps + 1) % 20000 == 0:
-        print("Saving new model")
+    if n_steps % 150 == 0:
+        print(f"Saving new model: step {n_steps}")
         _locals['self'].save(f"log/{model_name}_{str(agentNum)}.pkl")
         agentNum += 1
 
-    n_steps += 1
     return True
 
 
 def load_model_from_file(module, v):
     if os.path.isfile(f"log/{v[0]}_{v[1]}.pkl"):
         print("load")
-        return module.load(f"log/{v[0]}_{v[1]}", env, tensorboard_log='./tensorboard_log')
+        return module.load(f"log/{v[0]}_{v[1]}", env)
     else:
         print(f"Failed to load previous model. File does not exist: log/{v[0]}_{v[1]}.pkl")
         raise
@@ -67,7 +62,7 @@ if previous_version is not None:
     model = load_model_from_file(RL_MODULE, previous_version)
 else:
     print("NEW")
-    model = RL_MODULE(POLICY, env, nminibatches=1, tensorboard_log='./tensorboard_log')
+    model = RL_MODULE(POLICY, env, nminibatches=4)
 
 # clearFrameFolder()
 

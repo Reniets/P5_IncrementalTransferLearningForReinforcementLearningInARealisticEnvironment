@@ -34,7 +34,7 @@ class CarlaEnv(gym.Env):
         self.episodeNr = 0
         self.episodeFrames = []
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession("My Random Name")
+        self.sessionId = self.sql.INSERT_newSession("My Random Name") if (self.carlaInstance == 0) else None
 
         # Early stopping variables
         self.grassLocation = None
@@ -78,6 +78,7 @@ class CarlaEnv(gym.Env):
 
             self._exportVideo(folder, file_name, self.episodeFrames)
             self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
+            os.remove(file_path)
 
         # global stepsCountEpisode
         # print(stepsCountEpisode)
@@ -245,11 +246,13 @@ class CarlaEnv(gym.Env):
 
         if settings.AGENT_SYNCED: self.world.tick()
 
+        is_done = self._isDone() # Must be calculated before rewards
+
         # Update reward
         reward = self._calcRewardNew()
         self.episodeReward += reward
         # print('Reward: \t' + str(self.episodeReward) + "\t - " + str(reward))
-        return self.imgFrame, reward, self._isDone(), {}
+        return self.imgFrame, reward, is_done, {}
 
     # Applies a discrete action to the vehicle
     def _setActionDiscrete(self, action):
@@ -283,9 +286,9 @@ class CarlaEnv(gym.Env):
         reward = 0
 
       # reward += self._rewardSubGoal()             * weight
-        reward += self._rewardDriveFarOnRoad()      * 2.00  # Reward
-        reward += self._rewardDriveShortOnGrass()   * 2.00  # Penalty
-        reward += self._rewardReturnToRoad()        * 0.50  # Reward / Penalty
+        reward += self._rewardDriveFarOnRoad()      * 1.00  # Reward
+        # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
+        # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
         # reward += self._rewardAvoidGrass()          * 0.50  # Penalty
         # reward += self._rewardDriveFast()         * 0.10
@@ -386,7 +389,12 @@ class CarlaEnv(gym.Env):
         return self.episodeReward < -500
 
     def _isStuckOnGrass(self):
-        return self.wheelsOnGrass == 4 and self._metersTraveledSinceLastTick() == 0.0
+        if self.wheelsOnGrass == 4 and self._metersTraveledSinceLastTick() == 0.0:
+            self.grassStuckTick += 1
+            return self.grassStuckTick > 5
+        else:
+            self.grassStuckTick = 0
+            return False
 
     '''Each time step, model predicts and steps an action, after which render is called'''
     def render(self, mode='human'):
