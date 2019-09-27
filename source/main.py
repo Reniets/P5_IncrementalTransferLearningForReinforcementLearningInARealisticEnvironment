@@ -26,7 +26,7 @@ env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i 
 RL_MODULE = PPO2
 POLICY = CnnLstmPolicy
 # give model name
-model_name = "best_model_discrete_new_rewards"
+model_name = settings.MODEL_NAME
 # Decide whether to start from a previous version and if so which previous version
 previous_version = None  # Ex (model_name, 5)  # None if blank slate, tuple of (name, agentNum) if continued or transfer
 
@@ -61,7 +61,7 @@ if previous_version is not None:
     model = load_model_from_file(RL_MODULE, previous_version)
 else:
     print("NEW")
-    model = RL_MODULE(POLICY, env, nminibatches=settings.CARLA_SIMS_NO)
+    model = RL_MODULE(POLICY, env, nminibatches=settings.CARLA_SIMS_NO, tensorboard_log="./tensorboard_log")
 
 # makeVideoFromSensorFrames()
 clearFrameFolder()

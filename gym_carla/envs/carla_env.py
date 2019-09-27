@@ -37,7 +37,7 @@ class CarlaEnv(gym.Env):
         self.episodeNr = 0
         self.episodeFrames = []
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession("My Random Name") if (self.carlaInstance == 0) else None
+        self.sessionId = self.sql.INSERT_newSession(settings.MODEL_NAME) if (self.carlaInstance == 0) else None
 
         # Early stopping variables
         self.grassLocation = None
