@@ -80,6 +80,9 @@ class CarlaEnv(gym.Env):
             self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
             os.remove(file_path)
 
+        if self.carlaInstance == 0:
+            print(f"[0] Episode: {self.episodeNr}")
+
         # global stepsCountEpisode
         # print(stepsCountEpisode)
         # stepsCountEpisode = 0
