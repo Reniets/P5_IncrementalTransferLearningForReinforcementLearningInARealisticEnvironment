@@ -81,10 +81,10 @@ class CarlaEnv(gym.Env):
 
             self._exportVideo(folder, file_name, self.episodeFrames)
             self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
-            os.remove(file_path)
+            # os.remove(file_path)
 
         if self.carlaInstance == 0:
-            print(f"[0] Episode: {self.episodeNr}")
+            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward}")
 
         # global stepsCountEpisode
         # print(stepsCountEpisode)
@@ -95,8 +95,6 @@ class CarlaEnv(gym.Env):
         self._resetInstanceVariables()
 
         self.episodeReward = 0
-        # print(self.episodeReward)
-        # print("############################")
 
         # Create new actors and add to actor list
         self._createActors()
@@ -107,9 +105,7 @@ class CarlaEnv(gym.Env):
         self._setActionDiscrete(Action.BRAKE.value)
 
         # Wait for camera to send first image
-        # print("WAIT")
         self._waitForWorldToBeReady()
-        # print("WAIT DONE")
 
         # Set last tick variables to equal starting pos information
         self.car_last_tick_pos = self.vehicle.get_location()
@@ -208,7 +204,7 @@ class CarlaEnv(gym.Env):
 
         file_path = folder + "/" + file_name
 
-        video_size = (settings.IMG_HEIGHT, settings.IMG_WIDTH)
+        video_size = (self._getVideoHeight(), self._getVideoWidth())
         fps = 1/settings.TIME_STEP_SIZE
 
         out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, video_size)
@@ -308,7 +304,7 @@ class CarlaEnv(gym.Env):
         self.car_last_tick_wheels_on_road = self._wheelsOnRoad()
 
     def _rewardStayOnRoad(self):
-        return self._wheelsOnRoad() * 2.5
+        return self._wheelsOnRoad() * 0.25
 
     def _rewardAvoidGrass(self):
         return self.wheelsOnGrass * (-0.25)
@@ -422,21 +418,26 @@ class CarlaEnv(gym.Env):
             self._storeImageForVideoEpisode(image)
 
         # Save images to disk (Output folder)
-        # img = Image.fromarray(image, 'RGB')
-        # img.save('my.png')
-        data.save_to_disk('../data/frames/%06d.png' % data.frame)
+        if settings.VIDEO_ALWAYS_ON and self.carlaInstance == 0:
+            cv2.imwrite(f"../data/frames/frame_{data.frame}.png", self._getResizedImageWithOverlay(image))
+            #  data.save_to_disk('../data/frames/%06d.png' % data.frame) # <- Hvad er det vi gør her præcist? Hvorfor det ikke bare image vi gemmer?
 
     def _storeImageForVideoEpisode(self, image):
+        image = self._getResizedImageWithOverlay(image)
+
+        self.episodeFrames.append(np.asarray(image))
+
+    def _getResizedImageWithOverlay(self, image):
         image = self._resizeImage(image)
         self._addFrameDataOverlay(image)
 
-        self.episodeFrames.append(image)
+        return image
 
     def _resizeImage(self, image):
         width = self._getVideoWidth()
         height = self._getVideoHeight()
 
-        return cv2.resize(image, dsize=(width, height))
+        return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC)
 
     def _getVideoWidth(self):
         return max(settings.IMG_WIDTH, settings.VIDEO_MAX_WIDTH)

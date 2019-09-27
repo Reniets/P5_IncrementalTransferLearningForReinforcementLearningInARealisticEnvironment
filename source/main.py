@@ -64,8 +64,8 @@ else:
     model = RL_MODULE(POLICY, env, nminibatches=settings.CARLA_SIMS_NO)
 
 # makeVideoFromSensorFrames()
-# clearFrameFolder()
-
+clearFrameFolder()
+print("Done")
 # Perform learning
 model.learn(total_timesteps=1000000000, callback=callback)
 model.save(f"{model_name}_{n_steps}")

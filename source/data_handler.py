@@ -9,7 +9,7 @@ makeCarlaImportable()  # Defines a path to your carla folder which makes it visi
 import carla
 
 
-def makeVideoFromSensorFrames(fps=10):
+def makeVideoFromSensorFrames(fps=60):
     pathIn = "../data/frames/"
     pathOut = "../data/videos/"
     fileName = str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")) + ".avi"

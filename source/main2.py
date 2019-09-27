@@ -19,17 +19,17 @@ from gym_carla.envs.carla_env import CarlaEnv
 def manuallyEvaluateAgent():
     startCarlaSims()
 
-    env = SubprocVecEnv([lambda: gym.make('CarlaGym-v0')])
+    env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
     # Load the trained agent
-    model = PPO2.load("log/best_model_discrete_new_rewards_12", env, nminibatches=settings.CARLA_SIMS_NO)
+    model = PPO2.load("log/best_model_discrete_new_rewards_17", env, nminibatches=settings.CARLA_SIMS_NO)
 
-    # Enjoy trained agent
     obs = env.reset()
     for i in range(100000):
         action, _states = model.predict(obs)
-        obs, rewards, dones, info = env.step(action)
-        time.sleep(0.1)
+        obs, rewards, done, info = env.step(action)
 
 
-manuallyEvaluateAgent()
+# clearFrameFolder()
+# manuallyEvaluateAgent()
+makeVideoFromSensorFrames()
