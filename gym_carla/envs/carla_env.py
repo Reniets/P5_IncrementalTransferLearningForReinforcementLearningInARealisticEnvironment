@@ -94,7 +94,7 @@ class CarlaEnv(gym.Env):
         self._createActors()
 
         # Workaround to start episode as quickly as possible
-        self._setActionDiscrete(Action.BRAKE.value)
+        self._applyActionDiscrete(Action.BRAKE.value)
 
         # Wait for camera to send first image
         self._waitForWorldToBeReady()
@@ -104,7 +104,7 @@ class CarlaEnv(gym.Env):
         self.car_last_tick_wheels_on_road = 4
 
         # Disengage brakes from earlier workaround
-        self._setActionDiscrete(Action.DO_NOTHING.value)
+        self._applyActionDiscrete(Action.DO_NOTHING.value)
 
         return self.imgFrame  # Returns initial observation (First image)
 
@@ -114,7 +114,7 @@ class CarlaEnv(gym.Env):
 
         # Do action
         # self._setActionDiscrete(action)
-        self._setActionBox(action)
+        self._applyActionBox(action)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -219,7 +219,7 @@ class CarlaEnv(gym.Env):
         return grass_sensor
 
     # Applies a discrete action to the vehicle
-    def _setActionDiscrete(self, action):
+    def _applyActionDiscrete(self, action):
         # If action does something, apply action
         self.vehicle.apply_control(carla.VehicleControl(
             throttle=DISCRETE_ACTIONS[Action(action)][0],
@@ -228,7 +228,7 @@ class CarlaEnv(gym.Env):
         )
 
     # Applies a box action to the vehicle
-    def _setActionBox(self, action):
+    def _applyActionBox(self, action):
         self.vehicle.apply_control(carla.VehicleControl(
             throttle=float(action[0]),
             brake=float(action[1]),
@@ -269,7 +269,7 @@ class CarlaEnv(gym.Env):
         episode_expired = self._isEpisodeExpired()
         is_stuck_on_grass = self._isStuckOnGrass()
         car_on_grass = self._isCarOnGrass()
-        max_negative_reward = self._isCarOnGrass()
+        max_negative_reward = self._isMaxNegativeRewardAccumulated()
 
         return episode_expired or is_stuck_on_grass  # or car_on_grass or max_negative_reward
 
