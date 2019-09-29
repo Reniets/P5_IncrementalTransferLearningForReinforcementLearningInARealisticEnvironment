@@ -14,4 +14,5 @@ VIDEO_MAX_WIDTH = 200
 VIDEO_MAX_HEIGHT = 200
 VIDEO_ALWAYS_ON = False
 
+# Other settings
 MODEL_NAME = "box_new_rewards"

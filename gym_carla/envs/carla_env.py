@@ -6,19 +6,18 @@ from database.sql import Sql
 import numpy as np
 from gym_carla.carla_utils import *
 import cv2
-
+from source.reward import Reward
 from source.numpyNumbers import NumpyNumbers
 
 makeCarlaImportable()
 import carla
 from PIL import Image
-stepsCountEpisode = 0
+
 
 class CarlaEnv(gym.Env):
-
+    """Sets up CARLA simulation and declares necessary instance variables"""
     def __init__(self, carlaInstance=0):
 
-        self.carlaInstance = carlaInstance
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
         self.client.set_timeout(2.0)
@@ -26,8 +25,9 @@ class CarlaEnv(gym.Env):
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
         self.blueprintLibrary = self.world.get_blueprint_library()
+        self.carlaInstance = carlaInstance
+
         # Sensors and helper lists
-        # self.collisionHist = []
         self.actorList = []
         self.imgWidth = settings.IMG_WIDTH
         self.imgHeight = settings.IMG_HEIGHT
@@ -46,7 +46,6 @@ class CarlaEnv(gym.Env):
         # Declare variables for later use
         self.vehicle = None
         self.segSensor = None
-        # self.colSensor = None
         self.grassSensor = None
         self.imgFrame = None
         self.wheelsOnGrass = None
@@ -56,52 +55,38 @@ class CarlaEnv(gym.Env):
         # Declare reward dependent values
         self.car_last_tick_pos = None
         self.car_last_tick_wheels_on_road = None
+        self.reward = Reward(self)
 
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
 
         # Defines observation and action spaces
         self.observation_space = imageSpace
+        self.action_space = Box(np.array([0, 0, -1]), np.array([+1, +1, +1]), dtype=np.float32)  # [Throttle, Brake, Steer]
         # self.action_space = Discrete(len(DISCRETE_ACTIONS))
-        # [Throttle, Steer, brake]
-        self.action_space = Box(np.array([0, 0, -1]), np.array([+1, +1, +1]), dtype=np.float32)    # Steer,
-        # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)    # Steer,
 
         if settings.AGENT_SYNCED: self.world.tick()
 
-
     ''':returns initial observation'''
     def reset(self):
-        self.episodeNr += 1
+        self.episodeNr += 1  # Count episodes
+
+        # Print episode and reward for that episode
+        if self.carlaInstance == 0:
+            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward}")
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
         if self.episodeFrames:
-            folder = "../data/videos"
-            file_name = f"videoTest_{self.episodeNr}.avi"
-            file_path = folder+"/"+file_name
+            self._exportAndUploadVideoToDB()
 
-            self._exportVideo(folder, file_name, self.episodeFrames)
-            self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
-            # os.remove(file_path)
-
-        if self.carlaInstance == 0:
-            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward}")
-
-        # global stepsCountEpisode
-        # print(stepsCountEpisode)
-        # stepsCountEpisode = 0
-
-        # Destroy all previous actors, and clear actor list
+        # Reset actors, variables and rewards for next episode
         self._resetActorList()
         self._resetInstanceVariables()
-
         self.episodeReward = 0
 
         # Create new actors and add to actor list
         self._createActors()
-
-        # TODO: Make some system that allows previewing episodes once in a while
 
         # Workaround to start episode as quickly as possible
         self._setActionDiscrete(Action.BRAKE.value)
@@ -222,6 +207,14 @@ class CarlaEnv(gym.Env):
 
         self.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob)
 
+    def _exportAndUploadVideoToDB(self):
+        folder = "../data/videos"
+        file_name = f"videoTest_{self.episodeNr}.avi"
+        file_path = folder + "/" + file_name
+
+        self._exportVideo(folder, file_name, self.episodeFrames)
+        self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
+        # os.remove(file_path)
 
     # Creates a new grass sensor and spawns it into the world as an actor
     # Returns the sensor
@@ -240,8 +233,6 @@ class CarlaEnv(gym.Env):
 
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
-        # global stepsCountEpisode
-        # stepsCountEpisode += 1
         self.episodeTicks += 1
 
         # Do action
@@ -250,12 +241,12 @@ class CarlaEnv(gym.Env):
 
         if settings.AGENT_SYNCED: self.world.tick()
 
-        is_done = self._isDone() # Must be calculated before rewards
+        is_done = self._isDone()  # Must be calculated before rewards
 
         # Update reward
-        reward = self._calcRewardNew()
+        reward = self.reward.calcReward()
         self.episodeReward += reward
-        # print('Reward: \t' + str(self.episodeReward) + "\t - " + str(reward))
+
         return self.imgFrame, reward, is_done, {}
 
     # Applies a discrete action to the vehicle
@@ -275,67 +266,9 @@ class CarlaEnv(gym.Env):
             steer=float(action[2]),
         ))
 
-    # Returns the reward for the current state
-    def _calcReward(self):
-        reward = 0
-        speed = self._getCarVelocity()
-        expected_speed = 20
-
-        reward += (speed / expected_speed) * self._wheelsOnRoad()
-        reward -= self.wheelsOnGrass
-
-        return reward
-
-    def _calcRewardNew(self):
-        reward = 0
-
-      # reward += self._rewardSubGoal()             * weight
-        reward += self._rewardDriveFarOnRoad()      * 1.00  # Reward
-        # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
-        # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
-        # reward += self._rewardStayOnRoad()          * 0.05  # Reward
-        reward += self._rewardAvoidGrass()          * 1.00  # Penalty
-        # reward += self._rewardDriveFast()         * 0.10
-
-        self._updateLastTickVariables()  # MUST BE LAST THING IN REWARD FUNCTION
-
-        return reward
-
-    def _updateLastTickVariables(self):
-        self.car_last_tick_pos = self.vehicle.get_location()
-        self.car_last_tick_wheels_on_road = self._wheelsOnRoad()
-
-    def _rewardStayOnRoad(self):
-        return self._wheelsOnRoad() * 0.25
-
-    def _rewardAvoidGrass(self):
-        return self.wheelsOnGrass * (-0.25)
-
-    def _rewardDriveFast(self):
-        return (self._getCarVelocity() / 50) * self._rewardStayOnRoad()
-
-    def _rewardDriveFar(self):
-        return self._metersTraveledSinceLastTick()
-
-    def _rewardDriveFarOnRoad(self):
-        return self._rewardDriveFar() * self._wheelsOnRoad()
-
-    def _rewardDriveShortOnGrass(self):
-        return -(self._rewardDriveFar() * self.wheelsOnGrass)
-
-    def _rewardReturnToRoad(self):
-        wheel_diff = self._wheelsOnRoadDiffFromLastTick()
-
-        if wheel_diff > 0:
-            return wheel_diff * 25
-        elif wheel_diff < 0:
-            return wheel_diff * (-50)
-        else:
-            return 0
-
     # Returns the amount of meters traveled since last tick
     # and updated last pos to current pos
-    def _metersTraveledSinceLastTick(self):
+    def metersTraveledSinceLastTick(self):
         # Calculate meters driven
         last = self.car_last_tick_pos
         current = self.vehicle.get_location()
@@ -349,21 +282,12 @@ class CarlaEnv(gym.Env):
         # Return distance traveled in meters
         return distance_traveled
 
-    # Returns the difference from current tick to last tick of how many wheels are currently on the road
-    # Also updates last to current tick
-    def _wheelsOnRoadDiffFromLastTick(self):
-        last = self.car_last_tick_wheels_on_road
-        current = self._wheelsOnRoad()
-        diff = current - last
-
-        return diff
-
     # Returns the amount of wheels on the road
-    def _wheelsOnRoad(self):
+    def wheelsOnRoad(self):
         return 4 - self.wheelsOnGrass
 
     # Returns the cars current velocity in km/h
-    def _getCarVelocity(self):
+    def getCarVelocity(self):
         vel_vec = self.vehicle.get_velocity()                               # The velocity vector
         mps = math.sqrt(vel_vec.x ** 2 + vel_vec.y ** 2 + vel_vec.z ** 2)   # Meter pr. second
         kph = mps * 3.6  # Speed in km/h (From m/s)                         # Km pr hour
@@ -393,7 +317,7 @@ class CarlaEnv(gym.Env):
         return self.episodeReward < -500
 
     def _isStuckOnGrass(self):
-        if self.wheelsOnGrass == 4 and self._metersTraveledSinceLastTick() == 0.0:
+        if self.wheelsOnGrass == 4 and self.metersTraveledSinceLastTick() == 0.0:
             self.grassStuckTick += 1
             return self.grassStuckTick > 5
         else:
@@ -449,7 +373,7 @@ class CarlaEnv(gym.Env):
 
     def _addFrameDataOverlay(self, frame):
         nn = NumpyNumbers()
-        speed = self._getCarVelocity()
+        speed = self.getCarVelocity()
         overlay = nn.getOverlay(round(speed), self._getVideoWidth(), self._getVideoHeight())
 
         for a, aa in enumerate(frame):
@@ -463,45 +387,4 @@ class CarlaEnv(gym.Env):
     def _grass_data(self, event):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
         # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
