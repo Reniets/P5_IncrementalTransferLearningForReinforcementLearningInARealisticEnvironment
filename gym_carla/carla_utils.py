@@ -32,47 +32,6 @@ DISCRETE_ACTIONS = {
 }
 
 
-# class Action(Enum):
-#     DO_NOTHING = 0
-#     TURN_LEFT_S = 1
-#     TURN_RIGHT_S = 2
-#     TURN_LEFT_M = 3
-#     TURN_RIGHT_M = 4
-#     TURN_LEFT_L = 5
-#     TURN_RIGHT_L = 6
-#     FORWARD = 7
-#     BRAKE = 8
-#     TURN_LEFT_AND_FORWARD_S = 9
-#     TURN_RIGHT_AND_FORWARD_S = 10
-#     TURN_LEFT_AND_FORWARD_M = 11
-#     TURN_RIGHT_AND_FORWARD_M = 12
-#     TURN_LEFT_AND_FORWARD_L = 13
-#     TURN_RIGHT_AND_FORWARD_L = 14
-#     TURN_LEFT_AND_BRAKE = 15
-#     TURN_RIGHT_AND_BRAKE = 16
-#
-# DISCRETE_ACTIONS = {
-#     Action.DO_NOTHING: None,
-#     Action.TURN_LEFT_S: [0.0, 0.0, -0.2],
-#     Action.TURN_RIGHT_S: [0.0, 0.0, 0.2],
-#     Action.TURN_LEFT_M: [0.0, 0.0, -0.4],
-#     Action.TURN_RIGHT_M: [0.0, 0.0, 0.4],
-#     Action.TURN_LEFT_L: [0.0, 0.0, -0.6],
-#     Action.TURN_RIGHT_L: [0.0, 0.0, 0.6],
-#     Action.FORWARD: [1.0, 0.0, 0.0],
-#     Action.BRAKE: [0.0, 1.0, 0.0],
-#     Action.TURN_LEFT_AND_FORWARD_S: [1.0, 0.0, -0.2],
-#     Action.TURN_RIGHT_AND_FORWARD_S: [1.0, 0.0, 0.2],
-#     Action.TURN_LEFT_AND_FORWARD_M: [1.0, 0.0, -0.4],
-#     Action.TURN_RIGHT_AND_FORWARD_M: [1.0, 0.0, 0.4],
-#     Action.TURN_LEFT_AND_FORWARD_L: [1.0, 0.0, -0.6],
-#     Action.TURN_RIGHT_AND_FORWARD_L: [1.0, 0.0, 0.6],
-#     Action.TURN_LEFT_AND_BRAKE: [0, 1.0, -0.5],
-#     Action.TURN_RIGHT_AND_BRAKE: [0, 1.0, 0.5]
-# }
-
-
-# Todo: Make one liner when tested if * works as intended
 # Functions
 def makeCarlaImportable():
     try:
@@ -86,6 +45,8 @@ import carla
 
 resWidth = 400
 resHeight = 400
+
+
 # Starts Carla simulations and changes their maps
 def startCarlaSims():
     print("Starting Carla...")

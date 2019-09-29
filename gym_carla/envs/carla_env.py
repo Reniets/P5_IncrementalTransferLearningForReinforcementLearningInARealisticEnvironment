@@ -6,8 +6,11 @@ from database.sql import Sql
 import numpy as np
 from gym_carla.carla_utils import *
 import cv2
+
+# Import classes
 from source.reward import Reward
-from source.numpyNumbers import NumpyNumbers
+from source.media_handler import MediaHandler
+
 
 makeCarlaImportable()
 import carla
@@ -35,7 +38,6 @@ class CarlaEnv(gym.Env):
 
         # Video variables
         self.episodeNr = 0
-        self.episodeFrames = []
         self.sql = Sql()
         self.sessionId = self.sql.INSERT_newSession(settings.MODEL_NAME) if (self.carlaInstance == 0) else None
 
@@ -55,7 +57,10 @@ class CarlaEnv(gym.Env):
         # Declare reward dependent values
         self.car_last_tick_pos = None
         self.car_last_tick_wheels_on_road = None
+
+        # Declare classes
         self.reward = Reward(self)
+        self.mediaHandler = MediaHandler(self)
 
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
@@ -77,8 +82,8 @@ class CarlaEnv(gym.Env):
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
-        if self.episodeFrames:
-            self._exportAndUploadVideoToDB()
+        if self.mediaHandler.episodeFrames:
+            self.mediaHandler.exportAndUploadVideoToDB()
 
         # Reset actors, variables and rewards for next episode
         self._resetActorList()
@@ -102,6 +107,24 @@ class CarlaEnv(gym.Env):
         self._setActionDiscrete(Action.DO_NOTHING.value)
 
         return self.imgFrame  # Returns initial observation (First image)
+
+    ''':returns (obs, reward, done, extra)'''
+    def step(self, action):
+        self.episodeTicks += 1
+
+        # Do action
+        # self._setActionDiscrete(action)
+        self._setActionBox(action)
+
+        if settings.AGENT_SYNCED: self.world.tick()
+
+        is_done = self._isDone()  # Must be calculated before rewards
+
+        # Update reward
+        reward = self.reward.calcReward()
+        self.episodeReward += reward
+
+        return self.imgFrame, reward, is_done, {}
 
     def _resetInstanceVariables(self):
         # Declare variables for later use
@@ -176,45 +199,9 @@ class CarlaEnv(gym.Env):
 
         # Spawn semantic segmentation sensor, start listening for data and add to actorList
         seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
-        seg_sensor.listen(self._processImage)
+        seg_sensor.listen(self.mediaHandler.processImage)
 
         return seg_sensor
-
-    # Returns true, if the current episode is a video episode
-    def _isVideoEpisode(self):
-        return (self.carlaInstance == 0) and (self.episodeNr % settings.VIDEO_EXPORT_RATE == 0)
-
-    # Exports a video from numpy arrays to the file system
-    def _exportVideo(self, folder, file_name, frames):
-        if not os.path.isdir(folder):
-            os.mkdir(folder)
-
-        file_path = folder + "/" + file_name
-
-        video_size = (self._getVideoHeight(), self._getVideoWidth())
-        fps = 1/settings.TIME_STEP_SIZE
-
-        out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, video_size)
-
-        for frame in frames:
-            out.write(frame)
-
-        out.release()
-
-    def _uploadVideoFileToDb(self, file_path, session_id, episode_nr, episode_reward):
-        with open(file_path, 'rb') as f:
-            video_blob = f.read()
-
-        self.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob)
-
-    def _exportAndUploadVideoToDB(self):
-        folder = "../data/videos"
-        file_name = f"videoTest_{self.episodeNr}.avi"
-        file_path = folder + "/" + file_name
-
-        self._exportVideo(folder, file_name, self.episodeFrames)
-        self._uploadVideoFileToDb(file_path, self.sessionId, self.episodeNr, self.episodeReward)
-        # os.remove(file_path)
 
     # Creates a new grass sensor and spawns it into the world as an actor
     # Returns the sensor
@@ -230,24 +217,6 @@ class CarlaEnv(gym.Env):
 
         # Return created actor
         return grass_sensor
-
-    ''':returns (obs, reward, done, extra)'''
-    def step(self, action):
-        self.episodeTicks += 1
-
-        # Do action
-        # self._setActionDiscrete(action)
-        self._setActionBox(action)
-
-        if settings.AGENT_SYNCED: self.world.tick()
-
-        is_done = self._isDone()  # Must be calculated before rewards
-
-        # Update reward
-        reward = self.reward.calcReward()
-        self.episodeReward += reward
-
-        return self.imgFrame, reward, is_done, {}
 
     # Applies a discrete action to the vehicle
     def _setActionDiscrete(self, action):
@@ -327,62 +296,6 @@ class CarlaEnv(gym.Env):
     '''Each time step, model predicts and steps an action, after which render is called'''
     def render(self, mode='human'):
         pass
-
-    def _processImage(self, data):
-        cc = carla.ColorConverter.CityScapesPalette
-        data.convert(cc)
-        # Get image, reshape and remove alpha channel
-        image = np.array(data.raw_data)
-        image = image.reshape((self.imgHeight, self.imgWidth, 4))
-        image = image[:, :, :3]
-
-        # bgra
-        self.imgFrame = image
-
-        # Save image in memory for later video export
-        if self._isVideoEpisode():
-            self._storeImageForVideoEpisode(image)
-
-        # Save images to disk (Output folder)
-        if settings.VIDEO_ALWAYS_ON and self.carlaInstance == 0:
-            cv2.imwrite(f"../data/frames/frame_{data.frame}.png", self._getResizedImageWithOverlay(image))
-            #  data.save_to_disk('../data/frames/%06d.png' % data.frame)
-
-    def _storeImageForVideoEpisode(self, image):
-        image = self._getResizedImageWithOverlay(image)
-
-        self.episodeFrames.append(np.asarray(image))
-
-    def _getResizedImageWithOverlay(self, image):
-        image = self._resizeImage(image)
-        self._addFrameDataOverlay(image)
-
-        return image
-
-    def _resizeImage(self, image):
-        width = self._getVideoWidth()
-        height = self._getVideoHeight()
-
-        return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC)
-
-    def _getVideoWidth(self):
-        return max(settings.IMG_WIDTH, settings.VIDEO_MAX_WIDTH)
-
-    def _getVideoHeight(self):
-        return max(settings.IMG_HEIGHT, settings.VIDEO_MAX_HEIGHT)
-
-    def _addFrameDataOverlay(self, frame):
-        nn = NumpyNumbers()
-        speed = self.getCarVelocity()
-        overlay = nn.getOverlay(round(speed), self._getVideoWidth(), self._getVideoHeight())
-
-        for a, aa in enumerate(frame):
-            for b, bb in enumerate(aa):
-                for c, frame_pixel in enumerate(bb):
-                    overlay_pixel = overlay[a, b, c]
-
-                    if overlay_pixel != 0:
-                        frame[a, b, c] = overlay_pixel
 
     def _grass_data(self, event):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
