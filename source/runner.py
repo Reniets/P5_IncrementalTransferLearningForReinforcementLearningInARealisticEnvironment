@@ -19,14 +19,15 @@ class Runner:
         self.modelName = None
         self.modelNum = None
         self.nSteps = 0
+        self.model = None
 
     def train(self):
         self._setup()
-        model = self._getModel(strictLoad=False)  # Load the model
+        self.model = self._getModel(strictLoad=False)  # Load the model
 
         # Perform learning
-        model.learn(total_timesteps=1000000000, callback=self._callback)
-        model.save(f"{self.modelName}_{self.nSteps}")
+        self.model.learn(total_timesteps=1000000000, callback=self._callback)
+        self.model.save(f"{self.modelName}_{self.nSteps}")
 
         print("Done Training")
 
@@ -45,7 +46,7 @@ class Runner:
     def _setup(self):
         # Setup environment
         startCarlaSims()
-        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
+        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', self.model, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
         # Decide which RL module and policy
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
