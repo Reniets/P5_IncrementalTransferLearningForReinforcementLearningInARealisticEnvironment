@@ -1,8 +1,11 @@
+import sys
+
 import gym
+import os
 from gym_carla import settings
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv
-from stable_baselines import *
+from stable_baselines.ppo2 import PPO2
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 
 
@@ -13,7 +16,7 @@ class Runner:
         self.policy = None
         self.newModel = None
         self.modelName = None
-        self.agentNum = None
+        self.modelNum = None
         self.nSteps = 0
 
     def train(self):
@@ -44,8 +47,8 @@ class Runner:
         self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
         # Decide which RL module and policy
-        self.rlModule = settings.MODEL_RL_MODULE
-        self.policy = settings.MODEL_POLICY
+        self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
+        self.policy = getattr(sys.modules[__name__], settings.MODEL_POLICY)
         self.modelName = settings.MODEL_NAME
         self.modelNum = settings.MODEL_NUMBER
 
@@ -55,23 +58,25 @@ class Runner:
         # Print stats every 100 calls
         if self.nSteps % 100 == 0:
             print(f"Saving new model: step {self.nSteps}")
-            _locals['self'].save(f"log/{self.modelName}_{str(self.agentNum)}.pkl")
-            self.agentNum += 1
+            _locals['self'].save(f"log/{self.modelName}_{str(self.modelNum)}.pkl")
+            self.modelNum += 1
 
         return True
 
     def _getModel(self, strictLoad=False):
+        tensorboard_log = "./tensorboard_log" if settings.USE_TENSORBOARD_LOG else None
+
         # Load from previous model:
         if os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"log/{self.modelName}_{self.modelName}", env=self.env)
+            model = self.rlModule.load(f"log/{self.modelName}_{self.modelName}", env=self.env, tensorboard_log=tensorboard_log)
         # Create new model
         elif strictLoad:
             raise Exception(f"Expected strict load but no model found: {self.modelName}_{self.modelNum}. "
                             f"Try changing model name and number in settings or disable strictLoad")
         else:
             print("NEW MODEL")
-            model = self.rlModule(policy=self.policy, env=self.env, nminibatches=settings.CARLA_SIMS_NO, tensorboard_log="./tensorboard_log")
+            model = self.rlModule(policy=self.policy, env=self.env, nminibatches=settings.CARLA_SIMS_NO, tensorboard_log=tensorboard_log)
 
         return model
 

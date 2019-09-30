@@ -9,6 +9,6 @@ logging.getLogger("tensorflow_hub").setLevel(logging.CRITICAL)
 runner = Runner()
 
 # Settings of model can be changed in settings.py file
-runner.train()  # Train a model
-# runner.evaluate()  # Evaluate model
+runner.train()          # Train a model
+# runner.evaluate()     # Evaluate model
 

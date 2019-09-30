@@ -19,10 +19,10 @@ class Reward:
         return reward
 
     def _rewardStayOnRoad(self):
-        return self.carlaEnv.wheelsOnRoad() * 0.25
+        return self.carlaEnv.wheelsOnRoad()
 
     def _rewardAvoidGrass(self):
-        return self.carlaEnv.wheelsOnGrass * (-0.25)
+        return -self.carlaEnv.wheelsOnGrass
 
     def _rewardDriveFast(self):
         return (self.carlaEnv.getCarVelocity() / 50) * self._rewardStayOnRoad()
