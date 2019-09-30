@@ -6,6 +6,7 @@ from gym_carla import settings
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.ppo2 import PPO2
+from stable_baselines.a2c import A2C
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 
 
@@ -76,7 +77,7 @@ class Runner:
                             f"Try changing model name and number in settings or disable strictLoad")
         else:
             print("NEW MODEL")
-            model = self.rlModule(policy=self.policy, env=self.env, nminibatches=settings.CARLA_SIMS_NO, tensorboard_log=tensorboard_log)
+            model = self.rlModule(policy=self.policy, env=self.env, tensorboard_log=tensorboard_log)
 
         return model
 

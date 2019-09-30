@@ -67,9 +67,9 @@ class CarlaEnv(gym.Env):
 
         # Defines observation and action spaces
         self.observation_space = imageSpace
-        # self.action_space = Discrete(len(DISCRETE_ACTIONS))
+        self.action_space = Discrete(len(DISCRETE_ACTIONS))
         # [Throttle, Steer, brake]
-        self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
+        # self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
         # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)
 
         if settings.AGENT_SYNCED: self.world.tick()
@@ -115,8 +115,8 @@ class CarlaEnv(gym.Env):
         self.episodeTicks += 1
 
         # Do action
-        # self._setActionDiscrete(action)
-        self._applyActionBox(action)
+        self._applyActionDiscrete(action)
+        # self._applyActionBox(action)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
