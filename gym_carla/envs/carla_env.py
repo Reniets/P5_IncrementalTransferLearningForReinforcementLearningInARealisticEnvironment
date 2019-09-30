@@ -19,7 +19,10 @@ from PIL import Image
 
 class CarlaEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
-    def __init__(self, carlaInstance=0):
+    def __init__(self, model, carlaInstance=0):
+
+        # Model
+        self.model = model
 
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
