@@ -11,7 +11,7 @@ CARLA_IMG_WIDTH = 50  # Pixels
 CARLA_IMG_HEIGHT = 50  # Pixels
 
 # Video settings
-VIDEO_EXPORT_RATE = 50  # Episodes
+VIDEO_EXPORT_RATE = 25  # Episodes
 VIDEO_MAX_WIDTH = 200  # Pixels
 VIDEO_MAX_HEIGHT = 200  # Pixels
 VIDEO_ALWAYS_ON = False  # Bool
@@ -22,5 +22,6 @@ MODEL_POLICY = "CnnLstmPolicy"
 MODEL_NAME = "a2c_comparison_known_working_settings"
 MODEL_NUMBER = None  # int|None. If int carla will try to load model, if none it will never even try!
 MODEL_USE_TENSORBOARD_LOG = True  # Bool
-MODEL_EXPORT_RATE = 100 if MODEL_RL_MODULE is "PPO2" else 2000  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
-
+MODEL_EXPORT_RATE = 100 if MODEL_RL_MODULE is "PPO2" else 100  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
+MODEL_N_STEPS = 128
+MODEL_DISCRETE = True  # True = Discrete and False = Continuous

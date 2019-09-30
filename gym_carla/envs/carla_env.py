@@ -57,6 +57,7 @@ class CarlaEnv(gym.Env):
         # Declare reward dependent values
         self.car_last_tick_pos = None
         self.car_last_tick_wheels_on_road = None
+        self.car_last_episode_time = None
 
         # Declare classes
         self.reward = Reward(self)
@@ -67,10 +68,12 @@ class CarlaEnv(gym.Env):
 
         # Defines observation and action spaces
         self.observation_space = imageSpace
-        self.action_space = Discrete(len(DISCRETE_ACTIONS))
-        # [Throttle, Steer, brake]
-        # self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
-        # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)
+
+        if settings.MODEL_DISCRETE:
+            self.action_space = Discrete(len(DISCRETE_ACTIONS))
+        else:
+            # [Throttle, Steer, brake]
+            self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -79,8 +82,8 @@ class CarlaEnv(gym.Env):
         self.episodeNr += 1  # Count episodes
 
         # Print episode and reward for that episode
-        if self.carlaInstance == 0:
-            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward}")
+        if self.carlaInstance == 0 and self.car_last_episode_time is not None:
+            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
@@ -115,8 +118,11 @@ class CarlaEnv(gym.Env):
         self.episodeTicks += 1
 
         # Do action
-        self._applyActionDiscrete(action)
-        # self._applyActionBox(action)
+        if settings.MODEL_DISCRETE:
+            self._applyActionDiscrete(action)
+        else:
+            # noinspection PyTypeChecker
+            self._applyActionBox(action)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -146,9 +152,10 @@ class CarlaEnv(gym.Env):
         # Declare reward dependent values
         self.car_last_tick_pos = None
         self.car_last_tick_wheels_on_road = None
+        self.car_last_episode_time = time.time()
 
         # Video
-        self.episodeFrames = []
+        self.mediaHandler.episodeFrames = []
 
     def _createActors(self):
         # Spawn vehicle
@@ -259,6 +266,9 @@ class CarlaEnv(gym.Env):
 
     # Returns the cars current velocity in km/h
     def getCarVelocity(self):
+        if self.vehicle is None or not self.vehicle.is_alive:
+            return 0
+
         vel_vec = self.vehicle.get_velocity()                               # The velocity vector
         mps = math.sqrt(vel_vec.x ** 2 + vel_vec.y ** 2 + vel_vec.z ** 2)   # Meter pr. second
         kph = mps * 3.6  # Speed in km/h (From m/s)                         # Km pr hour

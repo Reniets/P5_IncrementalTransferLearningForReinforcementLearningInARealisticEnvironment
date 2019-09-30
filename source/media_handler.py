@@ -43,7 +43,7 @@ class MediaHandler:
 
         self._exportVideo(folder, file_name, self.episodeFrames)
         self._uploadVideoFileToDb(file_path, self.carlaEnv.sessionId, self.carlaEnv.episodeNr, self.carlaEnv.episodeReward)
-        # os.remove(file_path)
+        os.remove(file_path)
 
     # Returns true, if the current episode is a video episode
     def _isVideoEpisode(self):
