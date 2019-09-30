@@ -64,8 +64,8 @@ class CarlaEnv(gym.Env):
         self.observation_space = imageSpace
         # self.action_space = Discrete(len(DISCRETE_ACTIONS))
         # [Throttle, Steer, brake]
-        self.action_space = Box(np.array([0, 0, -1]), np.array([+1, +1, +1]), dtype=np.float32)    # Steer,
-        # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)    # Steer,
+        self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
+        # OLD: self.action_space = Box(np.array([-0.5, 0, 0]), np.array([+0.5, +1, +1]), dtype=np.float32)
 
         if settings.AGENT_SYNCED: self.world.tick()
 
@@ -309,7 +309,7 @@ class CarlaEnv(gym.Env):
         return self._wheelsOnRoad() * 0.25
 
     def _rewardAvoidGrass(self):
-        return self.wheelsOnGrass * (-0.25)
+        return self.wheelsOnGrass * (-1)
 
     def _rewardDriveFast(self):
         return (self._getCarVelocity() / 50) * self._rewardStayOnRoad()

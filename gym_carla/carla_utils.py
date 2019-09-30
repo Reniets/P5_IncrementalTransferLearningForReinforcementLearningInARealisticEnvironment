@@ -93,7 +93,7 @@ def startCarlaSims():
 
     for host in range(settings.CARLA_SIMS_NO):
         winX = (host*resWidth)+100
-        winY = 1000-resHeight
+        winY = 950-resHeight
         subprocess.Popen(['./CarlaUE4.sh' + f" -windowed -ResX={resWidth} -ResY={resHeight} -WinX={winX} -WinY={winY} -fps=1 -carla-rpc-port={str(settings.CARLA_SIMS[host][1])}"], cwd=settings.CARLA_PATH, shell=True)
         time.sleep(4)  # If DISPLAY is off, sleep longer
 

@@ -14,4 +14,4 @@ VIDEO_MAX_WIDTH = 200
 VIDEO_MAX_HEIGHT = 200
 VIDEO_ALWAYS_ON = False
 
-MODEL_NAME = "box_new_rewards"
+MODEL_NAME = "box_new_rewards_IHATEDONUTS"
