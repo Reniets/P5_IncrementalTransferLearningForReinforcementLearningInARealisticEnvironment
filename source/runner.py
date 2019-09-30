@@ -51,7 +51,7 @@ class Runner:
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
         self.policy = getattr(sys.modules[__name__], settings.MODEL_POLICY)
         self.modelName = settings.MODEL_NAME
-        self.modelNum = settings.MODEL_NUMBER
+        self.modelNum = settings.MODEL_NUMBER if settings.MODEL_NUMBER is not None else 0
 
     def _callback(self, _locals, _globals):
         self.nSteps += 1
@@ -68,7 +68,7 @@ class Runner:
         tensorboard_log = "./tensorboard_log" if settings.MODEL_USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
-        if self.modelNum is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
+        if settings.MODEL_NUMBER is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
             model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log)
         # Create new model

@@ -6,8 +6,8 @@ class Reward:
     def calcReward(self):
         reward = 0
 
-        reward += self._rewardDriveFarOnRoad() * 1.00  # Reward
-        reward += self._rewardAvoidGrass() * 0.25  # Penalty
+        reward += self._rewardDriveFarOnRoad() * 1.00  # Reward (points pr. meter driven on road pr. tire on road)
+        reward += self._rewardAvoidGrass() * 0.25  # Penalty (Points pr. tick on grass pr. tire on road)
         # reward += self._rewardSubGoal()             * weight
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
