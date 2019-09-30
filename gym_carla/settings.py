@@ -11,7 +11,7 @@ CARLA_IMG_WIDTH = 50  # Pixels
 CARLA_IMG_HEIGHT = 50  # Pixels
 
 # Video settings
-VIDEO_EXPORT_RATE = 100  # Episodes
+VIDEO_EXPORT_RATE = 25  # Episodes
 VIDEO_MAX_WIDTH = 200  # Pixels
 VIDEO_MAX_HEIGHT = 200  # Pixels
 VIDEO_ALWAYS_ON = False  # Bool

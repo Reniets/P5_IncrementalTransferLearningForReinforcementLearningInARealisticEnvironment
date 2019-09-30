@@ -155,7 +155,7 @@ class CarlaEnv(gym.Env):
         self.car_last_episode_time = time.time()
 
         # Video
-        self.episodeFrames = []
+        self.mediaHandler.episodeFrames = []
 
     def _createActors(self):
         # Spawn vehicle
@@ -266,6 +266,9 @@ class CarlaEnv(gym.Env):
 
     # Returns the cars current velocity in km/h
     def getCarVelocity(self):
+        if self.vehicle is None or not self.vehicle.is_alive:
+            return 0
+
         vel_vec = self.vehicle.get_velocity()                               # The velocity vector
         mps = math.sqrt(vel_vec.x ** 2 + vel_vec.y ** 2 + vel_vec.z ** 2)   # Meter pr. second
         kph = mps * 3.6  # Speed in km/h (From m/s)                         # Km pr hour
