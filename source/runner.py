@@ -46,7 +46,7 @@ class Runner:
     def _setup(self):
         # Setup environment
         startCarlaSims()
-        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', self.model, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
+        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', model=self.model, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
         # Decide which RL module and policy
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)

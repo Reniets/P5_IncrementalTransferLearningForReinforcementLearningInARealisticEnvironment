@@ -20,7 +20,7 @@ from PIL import Image
 
 class CarlaEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
-    def __init__(self, model, carlaInstance=0):
+    def __init__(self, model=None, carlaInstance=0):
 
         # Model
         self.model = model
@@ -210,7 +210,6 @@ class CarlaEnv(gym.Env):
         self.world.tick()
         while self._isWorldNotReady():
             if settings.AGENT_SYNCED: self.tick(10)
-
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
