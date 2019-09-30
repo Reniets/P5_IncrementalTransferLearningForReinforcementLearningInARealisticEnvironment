@@ -75,15 +75,10 @@ class MediaHandler:
     def _addFrameDataOverlay(self, frame):
         nn = NumpyNumbers()
         speed = self.carlaEnv.getCarVelocity()
-        overlay = nn.getOverlay(round(speed), self._getVideoWidth(), self._getVideoHeight())
+        overlay = nn.getOverlay(round(speed))
+        x_offset = frame.shape[1] - overlay.shape[1]
 
-        for a, aa in enumerate(frame):
-            for b, bb in enumerate(aa):
-                for c, frame_pixel in enumerate(bb):
-                    overlay_pixel = overlay[a, b, c]
-
-                    if overlay_pixel != 0:
-                        frame[a, b, c] = overlay_pixel
+        addOverlayToFrame(frame, overlay, (0, x_offset))
 
     # Exports a video from numpy arrays to the file system
     def _exportVideo(self, folder, file_name, frames):
@@ -118,7 +113,8 @@ def addOverlayToFrame(image, overlay, offset):
     for a, aa in enumerate(overlay):
         for b, bb in enumerate(aa):
             for c, frame_pixel in enumerate(bb):
-                image[a + offset[0], b + offset[1], c] = frame_pixel
+                if frame_pixel != 0:
+                    image[a + offset[0], b + offset[1], c] = frame_pixel
 
 
 def createSpeedBarOverlay(speed, height, width):
