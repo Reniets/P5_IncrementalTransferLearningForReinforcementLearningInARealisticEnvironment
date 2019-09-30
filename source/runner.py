@@ -6,6 +6,7 @@ from gym_carla import settings
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.ppo2 import PPO2
+from stable_baselines.a2c import A2C
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 
 
@@ -50,7 +51,7 @@ class Runner:
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
         self.policy = getattr(sys.modules[__name__], settings.MODEL_POLICY)
         self.modelName = settings.MODEL_NAME
-        self.modelNum = settings.MODEL_NUMBER
+        self.modelNum = settings.MODEL_NUMBER if settings.MODEL_NUMBER is not None else 0
 
     def _callback(self, _locals, _globals):
         self.nSteps += 1
@@ -67,7 +68,7 @@ class Runner:
         tensorboard_log = "./tensorboard_log" if settings.MODEL_USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
-        if self.modelNum is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
+        if settings.MODEL_NUMBER is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
             model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log)
         # Create new model
@@ -76,7 +77,7 @@ class Runner:
                             f"Try changing model name and number in settings or disable strictLoad")
         else:
             print("NEW MODEL")
-            model = self.rlModule(policy=self.policy, env=self.env, nminibatches=settings.CARLA_SIMS_NO, tensorboard_log=tensorboard_log)
+            model = self.rlModule(policy=self.policy, env=self.env, tensorboard_log=tensorboard_log)
 
         return model
 

@@ -6,12 +6,12 @@ class Reward:
     def calcReward(self):
         reward = 0
 
+        reward += self._rewardDriveFarOnRoad() * 1.00  # Reward (points pr. meter driven on road pr. tire on road)
+        reward += self._rewardAvoidGrass() * 0.25  # Penalty (Points pr. tick on grass pr. tire on road)
         # reward += self._rewardSubGoal()             * weight
-        reward += self._rewardDriveFarOnRoad() * 1.00  # Reward
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
-        reward += self._rewardAvoidGrass() * 1.00  # Penalty
         # reward += self._rewardDriveFast()         * 0.10
 
         self._updateLastTickVariables()  # MUST BE LAST THING IN REWARD FUNCTION
@@ -47,14 +47,14 @@ class Reward:
             return 0
 
     def _updateLastTickVariables(self):
-        self.car_last_tick_pos = self.carlaEnv.vehicle.get_location()
-        self.car_last_tick_wheels_on_road = self.carlaEnv.wheelsOnRoad()
+        self.carlaEnv.car_last_tick_pos = self.carlaEnv.vehicle.get_location()
+        self.carlaEnv.car_last_tick_wheels_on_road = self.carlaEnv.wheelsOnRoad()
 
         # Returns the difference from current tick to last tick of how many wheels are currently on the road
         # Also updates last to current tick
 
     def _wheelsOnRoadDiffFromLastTick(self):
-        last = self.car_last_tick_wheels_on_road
+        last = self.carlaEnv.car_last_tick_wheels_on_road
         current = self.carlaEnv.wheelsOnRoad()
         diff = current - last
 

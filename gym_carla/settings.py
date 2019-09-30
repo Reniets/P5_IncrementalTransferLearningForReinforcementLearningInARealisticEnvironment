@@ -17,10 +17,10 @@ VIDEO_MAX_HEIGHT = 200  # Pixels
 VIDEO_ALWAYS_ON = False  # Bool
 
 # Model settings
-MODEL_RL_MODULE = "PPO2"
+MODEL_RL_MODULE = "A2C"
 MODEL_POLICY = "CnnLstmPolicy"
-MODEL_NAME = "box_new_rewards_IHATEDONUTS"
-MODEL_NUMBER = 0  # int|None. If int carla will try to load model, if none it will never even try!
+MODEL_NAME = "a2c_comparison_known_working_settings"
+MODEL_NUMBER = None  # int|None. If int carla will try to load model, if none it will never even try!
 MODEL_USE_TENSORBOARD_LOG = True  # Bool
-MODEL_EXPORT_RATE = 100  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
+MODEL_EXPORT_RATE = 100 if MODEL_RL_MODULE is "PPO2" else 2000  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
 
