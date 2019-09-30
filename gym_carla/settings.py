@@ -9,6 +9,7 @@ CARLA_SIMS = [['localhost', 3000, 'Curve2'], ['localhost', 3003, 'Curve2'], ['lo
 CARLA_TICKS_PER_EPISODE = 60 * (1 / AGENT_TIME_STEP_SIZE)  # Steps
 CARLA_IMG_WIDTH = 50  # Pixels
 CARLA_IMG_HEIGHT = 50  # Pixels
+CARLA_IMG_MAX_SPEED = 80  # km/h
 
 # Video settings
 VIDEO_EXPORT_RATE = 25  # Episodes
