@@ -32,8 +32,8 @@ class CarlaEnv(gym.Env):
 
         # Sensors and helper lists
         self.actorList = []
-        self.imgWidth = settings.IMG_WIDTH
-        self.imgHeight = settings.IMG_HEIGHT
+        self.imgWidth = settings.CARLA_IMG_WIDTH
+        self.imgHeight = settings.CARLA_IMG_HEIGHT
         self.episodeTicks = 0
 
         # Video variables
@@ -277,7 +277,7 @@ class CarlaEnv(gym.Env):
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
-        return self.episodeTicks > settings.TICKS_PER_EPISODE
+        return self.episodeTicks > settings.CARLA_TICKS_PER_EPISODE
 
     # Returns true if all four wheels are not on the road
     def _isCarOnGrass(self):

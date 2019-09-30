@@ -56,7 +56,7 @@ class Runner:
         self.nSteps += 1
 
         # Print stats every 100 calls
-        if self.nSteps % 1 == 0:
+        if self.nSteps % 100 == 0:
             print(f"Saving new model: step {self.nSteps}")
             _locals['self'].save(f"log/{self.modelName}_{self.modelNum}.pkl")
             self.modelNum += 1
@@ -64,7 +64,7 @@ class Runner:
         return True
 
     def _getModel(self, strictLoad=False):
-        tensorboard_log = "./tensorboard_log" if settings.USE_TENSORBOARD_LOG else None
+        tensorboard_log = "./tensorboard_log" if settings.MODEL_USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
         if self.modelNum is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):

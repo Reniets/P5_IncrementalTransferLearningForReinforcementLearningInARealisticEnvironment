@@ -66,10 +66,10 @@ class MediaHandler:
         return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC)
 
     def _getVideoWidth(self):
-        return max(settings.IMG_WIDTH, settings.VIDEO_MAX_WIDTH)
+        return max(settings.CARLA_IMG_WIDTH, settings.VIDEO_MAX_WIDTH)
 
     def _getVideoHeight(self):
-        return max(settings.IMG_HEIGHT, settings.VIDEO_MAX_HEIGHT)
+        return max(settings.CARLA_IMG_HEIGHT, settings.VIDEO_MAX_HEIGHT)
 
     def _addFrameDataOverlay(self, frame):
         nn = NumpyNumbers()
@@ -92,7 +92,7 @@ class MediaHandler:
         file_path = folder + "/" + file_name
 
         video_size = (self._getVideoHeight(), self._getVideoWidth())
-        fps = 1 / settings.TIME_STEP_SIZE
+        fps = 1 / settings.AGENT_TIME_STEP_SIZE
 
         out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, video_size)
 

@@ -1,14 +1,16 @@
 # Agent settings
 AGENT_SYNCED = True  # Synchronizes agent with frame updates from Carla
-TIME_STEP_SIZE = 0.1  # Size of fixed time step
+AGENT_TIME_STEP_SIZE = 0.1  # Size of fixed time step
 
 # CarlaEnv settings
 CARLA_PATH = '/home/d506e19/carla/Dist/CARLA_Shipping_0.9.6-22-g2b120e37-dirty/LinuxNoEditor'  # Path to Carla root folder
 CARLA_SIMS_NO = 4  # Number of simulations
 CARLA_SIMS = [['localhost', 3000, 'Curve2'], ['localhost', 3003, 'Curve2'], ['localhost', 3006, 'Curve2'], ['localhost', 3009, 'Curve2'], ['localhost', 3012, 'Curve2'], ['localhost', 3015, 'Curve2']]  # Possible simulations that can be created in format [Host, port, mapname]
-TICKS_PER_EPISODE = 60*(1/TIME_STEP_SIZE)
-IMG_WIDTH = 50
-IMG_HEIGHT = 50
+CARLA_TICKS_PER_EPISODE = 60 * (1 / AGENT_TIME_STEP_SIZE)
+CARLA_IMG_WIDTH = 50
+CARLA_IMG_HEIGHT = 50
+
+# Video settings
 VIDEO_EXPORT_RATE = 50
 VIDEO_MAX_WIDTH = 200
 VIDEO_MAX_HEIGHT = 200
@@ -19,4 +21,6 @@ MODEL_RL_MODULE = "PPO2"
 MODEL_POLICY = "CnnLstmPolicy"
 MODEL_NAME = "box_new_rewards_IHATEDONUTS"
 MODEL_NUMBER = 0
-USE_TENSORBOARD_LOG = True
+MODEL_USE_TENSORBOARD_LOG = True
+MODEL_SAVE_INTERVAL = 100
+

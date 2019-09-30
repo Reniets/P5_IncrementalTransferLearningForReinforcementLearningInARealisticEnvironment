@@ -75,7 +75,7 @@ def startCarlaSims():
 
         if settings.AGENT_SYNCED:
             clientSettings = client.get_world().get_settings()
-            clientSettings.fixed_delta_seconds = settings.TIME_STEP_SIZE
+            clientSettings.fixed_delta_seconds = settings.AGENT_TIME_STEP_SIZE
             clientSettings.synchronous_mode = True
             client.get_world().apply_settings(clientSettings)
 
