@@ -56,7 +56,7 @@ class Runner:
         self.nSteps += 1
 
         # Print stats every 100 calls
-        if self.nSteps % 100 == 0:
+        if self.nSteps % settings.MODEL_EXPORT_RATE == 0:
             print(f"Saving new model: step {self.nSteps}")
             _locals['self'].save(f"log/{self.modelName}_{self.modelNum}.pkl")
             self.modelNum += 1

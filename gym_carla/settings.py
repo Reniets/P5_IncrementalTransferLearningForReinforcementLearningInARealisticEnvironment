@@ -6,21 +6,21 @@ AGENT_TIME_STEP_SIZE = 0.1  # Size of fixed time step
 CARLA_PATH = '/home/d506e19/carla/Dist/CARLA_Shipping_0.9.6-22-g2b120e37-dirty/LinuxNoEditor'  # Path to Carla root folder
 CARLA_SIMS_NO = 4  # Number of simulations
 CARLA_SIMS = [['localhost', 3000, 'Curve2'], ['localhost', 3003, 'Curve2'], ['localhost', 3006, 'Curve2'], ['localhost', 3009, 'Curve2'], ['localhost', 3012, 'Curve2'], ['localhost', 3015, 'Curve2']]  # Possible simulations that can be created in format [Host, port, mapname]
-CARLA_TICKS_PER_EPISODE = 60 * (1 / AGENT_TIME_STEP_SIZE)
-CARLA_IMG_WIDTH = 50
-CARLA_IMG_HEIGHT = 50
+CARLA_TICKS_PER_EPISODE = 60 * (1 / AGENT_TIME_STEP_SIZE)  # Steps
+CARLA_IMG_WIDTH = 50  # Pixels
+CARLA_IMG_HEIGHT = 50  # Pixels
 
 # Video settings
-VIDEO_EXPORT_RATE = 50
-VIDEO_MAX_WIDTH = 200
-VIDEO_MAX_HEIGHT = 200
-VIDEO_ALWAYS_ON = False
+VIDEO_EXPORT_RATE = 50  # Episodes
+VIDEO_MAX_WIDTH = 200  # Pixels
+VIDEO_MAX_HEIGHT = 200  # Pixels
+VIDEO_ALWAYS_ON = False  # Bool
 
 # Model settings
 MODEL_RL_MODULE = "PPO2"
 MODEL_POLICY = "CnnLstmPolicy"
 MODEL_NAME = "box_new_rewards_IHATEDONUTS"
-MODEL_NUMBER = 0
-MODEL_USE_TENSORBOARD_LOG = True
-MODEL_SAVE_INTERVAL = 100
+MODEL_NUMBER = 0  # int|None. If int carla will try to load model, if none it will never even try!
+MODEL_USE_TENSORBOARD_LOG = True  # Bool
+MODEL_EXPORT_RATE = 100  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
 
