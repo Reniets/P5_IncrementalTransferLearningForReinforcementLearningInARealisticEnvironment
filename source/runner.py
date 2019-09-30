@@ -56,9 +56,9 @@ class Runner:
         self.nSteps += 1
 
         # Print stats every 100 calls
-        if self.nSteps % 100 == 0:
+        if self.nSteps % 1 == 0:
             print(f"Saving new model: step {self.nSteps}")
-            _locals['self'].save(f"log/{self.modelName}_{str(self.modelNum)}.pkl")
+            _locals['self'].save(f"log/{self.modelName}_{self.modelNum}.pkl")
             self.modelNum += 1
 
         return True
@@ -67,9 +67,9 @@ class Runner:
         tensorboard_log = "./tensorboard_log" if settings.USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
-        if os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
+        if self.modelNum is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"log/{self.modelName}_{self.modelName}", env=self.env, tensorboard_log=tensorboard_log)
+            model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log)
         # Create new model
         elif strictLoad:
             raise Exception(f"Expected strict load but no model found: {self.modelName}_{self.modelNum}. "
