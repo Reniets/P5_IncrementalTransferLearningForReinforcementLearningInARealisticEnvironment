@@ -22,7 +22,7 @@ class MediaHandler:
         image = np.array(data.raw_data)
         image = image.reshape((self.carlaEnv.imgHeight, self.carlaEnv.imgWidth, 4))
         image = image[:, :, :3]
-        addSpeedOverlayToFrame(image)
+        addSpeedOverlayToFrame(image, self.carlaEnv.getCarVelocity())
 
         # bgra
         self.carlaEnv.imgFrame = image
@@ -109,18 +109,16 @@ class MediaHandler:
         self.carlaEnv.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob)
 
 
-def addSpeedOverlayToFrame(frame):
-    overlay = createSpeedBarOverlay(100, 50, 50)
-    addOverlayToFrame(frame, overlay)
+def addSpeedOverlayToFrame(frame, speed):
+    overlay = createSpeedBarOverlay(speed, 50, 50)
+    addOverlayToFrame(frame, overlay, (0, 0))
 
-def addOverlayToFrame(image, overlay):
-    for a, aa in enumerate(image):
+
+def addOverlayToFrame(image, overlay, offset):
+    for a, aa in enumerate(overlay):
         for b, bb in enumerate(aa):
             for c, frame_pixel in enumerate(bb):
-                overlay_pixel = overlay[a, b, c]
-
-                if overlay_pixel != 0:
-                    image[a, b, c] = overlay_pixel
+                image[a + offset[0], b + offset[1], c] = frame_pixel
 
 
 def createSpeedBarOverlay(speed, height, width):
@@ -131,13 +129,8 @@ def createSpeedBarOverlay(speed, height, width):
     speed_pixel_height = 5
 
     speed_bar = np.ones((speed_pixel_height, speed_pixel_width))
-    overlay_padding_right = np.zeros((speed_pixel_height, width - speed_pixel_width))
-    overlay_padding_down = np.zeros((height - speed_pixel_height, width))
 
-    overlay = np.concatenate((speed_bar, overlay_padding_right), axis=1)
-    overlay = np.concatenate((overlay, overlay_padding_down), axis=0)
-
-    return addColorChannels(overlay, (255, 50, 50))
+    return addColorChannels(speed_bar, (255, 50, 50))
 
 
 def addColorChannels(number: np, color):
