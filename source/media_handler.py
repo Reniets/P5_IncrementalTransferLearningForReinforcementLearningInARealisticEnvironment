@@ -22,7 +22,7 @@ class MediaHandler:
         image = np.array(data.raw_data)
         image = image.reshape((self.carlaEnv.imgHeight, self.carlaEnv.imgWidth, 4))
         image = image[:, :, :3]
-        addSpeedOverlayToFrame(image)
+        # addSpeedOverlayToFrame(image)
 
         # bgra
         self.carlaEnv.imgFrame = image
@@ -112,6 +112,7 @@ class MediaHandler:
 def addSpeedOverlayToFrame(frame):
     overlay = createSpeedBarOverlay(100, 50, 50)
     addOverlayToFrame(frame, overlay)
+
 
 def addOverlayToFrame(image, overlay):
     for a, aa in enumerate(image):
