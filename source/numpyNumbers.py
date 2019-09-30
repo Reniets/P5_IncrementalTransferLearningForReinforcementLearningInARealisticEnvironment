@@ -5,17 +5,8 @@ class NumpyNumbers:
     number_size = (7, 5)
     number_color = (255, 255, 50)  # (B, G, R) Cyan
 
-    def getOverlay(self, number: int, width: int, height: int):
-        overlay = self._getNumber(number)
-
-        overlay_height = overlay.shape[0]
-        overlay_width = overlay.shape[1]
-        missing_width = width - overlay_width
-
-        overlay = np.concatenate((overlay, np.zeros((overlay_height, missing_width, 3))), axis=1)
-        overlay = np.concatenate((overlay, np.zeros((height - overlay_height, width, 3))), axis=0)
-
-        return overlay
+    def getOverlay(self, number: int):
+        return self._getNumber(number)
 
     def _getNumber(self, number: int):
         number_str = str(number)
