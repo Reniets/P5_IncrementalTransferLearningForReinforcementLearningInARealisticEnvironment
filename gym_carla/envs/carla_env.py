@@ -1,5 +1,6 @@
 import math
 import os
+import queue
 import gym
 from gym.spaces import Discrete, Box, Tuple
 from database.sql import Sql
@@ -56,6 +57,8 @@ class CarlaEnv(gym.Env):
         self.wheelsOnGrass = None
         self.episodeStartTime = 0
         self.episodeReward = None
+        self.frameNumber = 0
+        self.queues = []  # List of tuples (queue, dataProcessingFunction)
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
@@ -78,7 +81,7 @@ class CarlaEnv(gym.Env):
             # [Throttle, Steer, brake]
             self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
 
-        if settings.AGENT_SYNCED: self.world.tick()
+        if settings.AGENT_SYNCED: self.tick(10)
 
     ''':returns initial observation'''
     def reset(self):
@@ -127,7 +130,7 @@ class CarlaEnv(gym.Env):
             # noinspection PyTypeChecker
             self._applyActionBox(action)
 
-        if settings.AGENT_SYNCED: self.world.tick()
+        if settings.AGENT_SYNCED: self.tick(10)
 
         is_done = self._isDone()  # Must be calculated before rewards
 
@@ -137,16 +140,36 @@ class CarlaEnv(gym.Env):
 
         return self.imgFrame, reward, is_done, {}
 
+    def tick(self, timeout):
+        self.frameNumber = self.world.tick()
+        data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
+        assert all(x.frame == self.frameNumber for x in data)
+        return data
+
+    def _makeQueue(self, registerEvent, processData):
+        q = queue.Queue()
+        registerEvent(q.put)
+        self.queues.append((q, processData))
+
+    def _retrieve_data(self, queueTuple, timeout):
+        while True:
+            data = queueTuple[0].get(timeout=timeout)
+            dataProcessFunction = queueTuple[1]
+
+            if data.frame == self.frameNumber:
+                dataProcessFunction(data)  # Process data
+                return data
+
     def _resetInstanceVariables(self):
         # Declare variables for later use
         self.vehicle = None
         self.segSensor = None
-        # self.colSensor = None
         self.grassSensor = None
         self.imgFrame = None
         self.wheelsOnGrass = None
         self.episodeTicks = 0
         self.episodeReward = None
+        self.queues = []
 
         # Early stopping
         self.grassLocation = None
@@ -184,9 +207,10 @@ class CarlaEnv(gym.Env):
 
     # Waits until the world is ready for training
     def _waitForWorldToBeReady(self):
+        self.world.tick()
         while self._isWorldNotReady():
-            if settings.AGENT_SYNCED: self.world.tick()
-        # if settings.AGENT_SYNCED: self.world.tick()
+            if settings.AGENT_SYNCED: self.tick(10)
+
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
@@ -211,8 +235,8 @@ class CarlaEnv(gym.Env):
 
         # Spawn semantic segmentation sensor, start listening for data and add to actorList
         seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
-        seg_sensor.listen(self.mediaHandler.processImage)
-
+        self._makeQueue(seg_sensor.listen, processData=self.mediaHandler.processImage)
+        # seg_sensor.listen(self.mediaHandler.processImage)
         return seg_sensor
 
     # Creates a new grass sensor and spawns it into the world as an actor
@@ -225,8 +249,8 @@ class CarlaEnv(gym.Env):
 
         # Grass sensor actor
         grass_sensor = self.world.spawn_actor(grass_blueprint, carla.Transform(), attach_to=self.vehicle)
-        grass_sensor.listen(self._grass_data)
-
+        self._makeQueue(grass_sensor.listen, processData=self._grass_data)
+        # grass_sensor.listen(self._grass_data)
         # Return created actor
         return grass_sensor
 
