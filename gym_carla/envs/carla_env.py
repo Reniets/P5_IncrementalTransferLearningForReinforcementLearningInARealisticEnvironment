@@ -2,7 +2,7 @@ import math
 import os
 import queue
 import gym
-from gym.spaces import Discrete, Box, Tuple
+from gym.spaces import Discrete, Box, Tuple, MultiDiscrete
 from database.sql import Sql
 import numpy as np
 from gym_carla.carla_utils import *
@@ -75,11 +75,24 @@ class CarlaEnv(gym.Env):
         # Defines observation and action spaces
         self.observation_space = imageSpace
 
-        if settings.MODEL_DISCRETE:
+        if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
             self.action_space = Discrete(len(DISCRETE_ACTIONS))
-        else:
+
+        elif settings.MODEL_ACTION_TYPE == ActionType.MULTI_DISCRETE.value:
+            # 1) Throttle: Discrete 4 - [0]:0.0, [1]:0.3, [2]:0.6, [3]:1.0
+            # 2) Brake: Discrete 3 - [0]:0.0, [1]:0.5, [2]:1
+            # 3) Steer: Discrete 5 - [0]:-1.0, [1]:-0.5, [2]:0.0, [3]:0.5, [4]:1.0
+            self.action_space = MultiDiscrete([4, 3, 5])
+            self.throttleMapLen = float(self.action_space.nvec[0]-1)
+            self.brakeMapLen = float(self.action_space.nvec[1]-1)
+            self.steerMapLen = float(self.action_space.nvec[2]-1)/2
+
+        elif settings.MODEL_ACTION_TYPE == ActionType.BOX.value:
             # [Throttle, Steer, brake]
             self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
+
+        else:
+            raise Exception("No such action type, change settings")
 
         if settings.AGENT_SYNCED: self.tick(10)
 
@@ -124,11 +137,14 @@ class CarlaEnv(gym.Env):
         self.episodeTicks += 1
 
         # Do action
-        if settings.MODEL_DISCRETE:
+        if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
             self._applyActionDiscrete(action)
-        else:
-            # noinspection PyTypeChecker
+        elif settings.MODEL_ACTION_TYPE == ActionType.MULTI_DISCRETE.value:
+            self._applyActionMultiDiscrete(action)
+        elif settings.MODEL_ACTION_TYPE == ActionType.BOX.value:
             self._applyActionBox(action)
+        else:
+            raise Exception("No such action type, change settings")
 
         if settings.AGENT_SYNCED: self.tick(10)
 
@@ -259,8 +275,16 @@ class CarlaEnv(gym.Env):
         self.vehicle.apply_control(carla.VehicleControl(
             throttle=DISCRETE_ACTIONS[Action(action)][0],
             brake=DISCRETE_ACTIONS[Action(action)][1],
-            steer=DISCRETE_ACTIONS[Action(action)][2])
-        )
+            steer=DISCRETE_ACTIONS[Action(action)][2]
+        ))
+
+    def _applyActionMultiDiscrete(self, action):
+        # If action does something, apply action
+        self.vehicle.apply_control(carla.VehicleControl(
+            throttle=action[0]/self.throttleMapLen,
+            brake=action[1]/self.brakeMapLen,
+            steer=(action[2]/self.steerMapLen)-1
+        ))
 
     # Applies a box action to the vehicle
     def _applyActionBox(self, action):
@@ -324,7 +348,7 @@ class CarlaEnv(gym.Env):
         return self.episodeReward < -500
 
     def _isStuckOnGrass(self):
-        if self.wheelsOnGrass == 4 and self.metersTraveledSinceLastTick() == 0.0:
+        if self.wheelsOnGrass == 4 and self.metersTraveledSinceLastTick() < 0.5:
             self.grassStuckTick += 1
             return self.grassStuckTick > 5
         else:

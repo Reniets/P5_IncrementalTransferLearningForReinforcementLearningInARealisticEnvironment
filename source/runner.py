@@ -27,7 +27,7 @@ class Runner:
 
         # Perform learning
         self.model.learn(total_timesteps=1000000000, callback=self._callback)
-        self.model.save(f"{self.modelName}_{self.nSteps}")
+        self.model.save(f"{self.modelName}_{self.modelNum}")
 
         print("Done Training")
 
@@ -72,6 +72,7 @@ class Runner:
         if settings.MODEL_NUMBER is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
             model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS)
+            self.modelNum += 1  # Avoid overwriting the loaded model
         # Create new model
         elif strictLoad:
             raise Exception(f"Expected strict load but no model found: {self.modelName}_{self.modelNum}. "

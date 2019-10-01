@@ -32,6 +32,11 @@ DISCRETE_ACTIONS = {
 }
 
 
+class ActionType(Enum):
+    DISCRETE = 0
+    MULTI_DISCRETE = 1
+    BOX = 2
+
 # Functions
 def makeCarlaImportable():
     try:

@@ -118,7 +118,7 @@ def addOverlayToFrame(image, overlay, offset):
 
 
 def createSpeedBarOverlay(speed, height, width):
-    max_speed = 150  # km/h
+    max_speed = 80  # km/h
     scale = min(speed / max_speed, 1)
 
     speed_pixel_width = round(width * scale)
