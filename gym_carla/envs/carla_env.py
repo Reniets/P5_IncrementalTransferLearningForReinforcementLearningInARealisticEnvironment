@@ -77,7 +77,6 @@ class CarlaEnv(gym.Env):
 
         if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
             self.action_space = Discrete(len(DISCRETE_ACTIONS))
-
         elif settings.MODEL_ACTION_TYPE == ActionType.MULTI_DISCRETE.value:
             # 1) Throttle: Discrete 4 - [0]:0.0, [1]:0.3, [2]:0.6, [3]:1.0
             # 2) Brake: Discrete 3 - [0]:0.0, [1]:0.5, [2]:1
@@ -86,11 +85,9 @@ class CarlaEnv(gym.Env):
             self.throttleMapLen = float(self.action_space.nvec[0]-1)
             self.brakeMapLen = float(self.action_space.nvec[1]-1)
             self.steerMapLen = float(self.action_space.nvec[2]-1)/2
-
         elif settings.MODEL_ACTION_TYPE == ActionType.BOX.value:
             # [Throttle, Steer, brake]
             self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
-
         else:
             raise Exception("No such action type, change settings")
 

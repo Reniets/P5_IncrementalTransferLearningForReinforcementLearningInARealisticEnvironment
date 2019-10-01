@@ -22,7 +22,7 @@ class MediaHandler:
         image = np.array(data.raw_data)
         image = image.reshape((self.carlaEnv.imgHeight, self.carlaEnv.imgWidth, 4))
         image = image[:, :, :3]
-        addSpeedOverlayToFrame(image, self.carlaEnv.getCarVelocity())
+        self.addSpeedOverlayToFrame(image, self.carlaEnv.getCarVelocity())
 
         # bgra
         self.carlaEnv.imgFrame = image
@@ -78,7 +78,7 @@ class MediaHandler:
         overlay = nn.getOverlay(round(speed))
         x_offset = frame.shape[1] - overlay.shape[1]
 
-        addOverlayToFrame(frame, overlay, (0, x_offset))
+        self.addOverlayToFrame(frame, overlay, (0, x_offset))
 
     # Exports a video from numpy arrays to the file system
     def _exportVideo(self, folder, file_name, frames):
@@ -103,35 +103,31 @@ class MediaHandler:
 
         self.carlaEnv.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob)
 
+    def addSpeedOverlayToFrame(self, frame, speed):
+        overlay = self.createSpeedBarOverlay(speed, 50, 50)
+        self.addOverlayToFrame(frame, overlay, (0, 0))
 
-def addSpeedOverlayToFrame(frame, speed):
-    overlay = createSpeedBarOverlay(speed, 50, 50)
-    addOverlayToFrame(frame, overlay, (0, 0))
+    def addOverlayToFrame(self, image, overlay, offset):
+        for a, aa in enumerate(overlay):
+            for b, bb in enumerate(aa):
+                for c, frame_pixel in enumerate(bb):
+                    if frame_pixel != 0:
+                        image[a + offset[0], b + offset[1], c] = frame_pixel
 
+    def createSpeedBarOverlay(self, speed, height, width):
+        max_speed = 80  # km/h
+        scale = min(speed / max_speed, 1)
 
-def addOverlayToFrame(image, overlay, offset):
-    for a, aa in enumerate(overlay):
-        for b, bb in enumerate(aa):
-            for c, frame_pixel in enumerate(bb):
-                if frame_pixel != 0:
-                    image[a + offset[0], b + offset[1], c] = frame_pixel
+        speed_pixel_width = round(width * scale)
+        speed_pixel_height = 5
 
+        speed_bar = np.ones((speed_pixel_height, speed_pixel_width))
 
-def createSpeedBarOverlay(speed, height, width):
-    max_speed = 80  # km/h
-    scale = min(speed / max_speed, 1)
+        return self.addColorChannels(speed_bar, (255, 50, 50))
 
-    speed_pixel_width = round(width * scale)
-    speed_pixel_height = 5
-
-    speed_bar = np.ones((speed_pixel_height, speed_pixel_width))
-
-    return addColorChannels(speed_bar, (255, 50, 50))
-
-
-def addColorChannels(number: np, color):
-    return np.dstack((
-        number * color[2],  # B
-        number * color[1],  # G
-        number * color[0],  # R
-    ))
+    def addColorChannels(self, number: np, color):
+        return np.dstack((
+            number * color[2],  # B
+            number * color[1],  # G
+            number * color[0],  # R
+        ))
