@@ -39,11 +39,14 @@ class MediaHandler:
     def exportAndUploadVideoToDB(self):
         folder = "../data/videos"
         file_name = f"videoTest_{self.carlaEnv.episodeNr}.avi"
-        file_path = folder + "/" + file_name
+        video_path = folder + "/" + file_name
+        model_path = f"temp/{settings.MODEL_NAME}_{self.carlaEnv.episodeNr}.pkl"
 
         self._exportVideo(folder, file_name, self.episodeFrames)
-        self._uploadVideoFileToDb(file_path, self.carlaEnv.sessionId, self.carlaEnv.episodeNr, self.carlaEnv.episodeReward)
-        os.remove(file_path)
+        self.carlaEnv.model.save(model_path)
+        self._uploadVideoAndModelToDb(video_path, model_path, self.carlaEnv.sessionId, self.carlaEnv.episodeNr, self.carlaEnv.episodeReward)
+        os.remove(video_path)
+        os.remove(model_path)
 
     # Returns true, if the current episode is a video episode
     def _isVideoEpisode(self):
@@ -97,11 +100,14 @@ class MediaHandler:
 
         out.release()
 
-    def _uploadVideoFileToDb(self, file_path, session_id, episode_nr, episode_reward):
-        with open(file_path, 'rb') as f:
+    def _uploadVideoAndModelToDb(self, video_path, model_path, session_id, episode_nr, episode_reward):
+        with open(video_path, 'rb') as f:
             video_blob = f.read()
 
-        self.carlaEnv.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob)
+        with open(model_path, 'rb') as f:
+            model_blob = f.read()
+
+        self.carlaEnv.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob, model_blob)
 
     def addSpeedOverlayToFrame(self, frame, speed):
         overlay = self.createSpeedBarOverlay(speed, 50, 50)
