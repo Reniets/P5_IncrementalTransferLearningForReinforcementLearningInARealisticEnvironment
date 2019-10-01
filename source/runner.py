@@ -4,10 +4,11 @@ import gym
 import os
 from gym_carla import settings
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.ppo2 import PPO2
 from stable_baselines.a2c import A2C
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
+from source.reward import Reward
 
 
 class Runner:
@@ -35,18 +36,18 @@ class Runner:
 
     def evaluate(self):
         self._setup()
-        model = self._getModel(strictLoad=True)  # Load the trained agent
+        self.model = self._getModel(strictLoad=True)  # Load the trained agent
 
         # Evaluate agent in environment
         obs = self.env.reset()
         for i in range(100000):
-            action, _states = model.predict(obs)
+            action, _states = self.model.predict(obs)
             obs, rewards, done, info = self.env.step(action)
 
     def _setup(self):
         # Setup environment
         startCarlaSims()
-        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', model=self.model, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
+        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
         # Decide which RL module and policy
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
@@ -56,6 +57,9 @@ class Runner:
 
     def _callback(self, _locals, _globals):
         self.nSteps += 1
+
+        info = _locals["ep_infos"]
+        print(f"{self.nSteps}: {info}")
 
         # Print stats every 100 calls
         if self.nSteps % settings.MODEL_EXPORT_RATE == 0:
@@ -71,7 +75,7 @@ class Runner:
         # Load from previous model:
         if settings.MODEL_NUMBER is not None and os.path.isfile(f"log/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS)
+            model = self.rlModule.load(f"log/{self.modelName}_{self.modelNum}", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.CARLA_SIMS_NO)
             self.modelNum += 1  # Avoid overwriting the loaded model
         # Create new model
         elif strictLoad:
@@ -79,7 +83,7 @@ class Runner:
                             f"Try changing model name and number in settings or disable strictLoad")
         else:
             print("NEW MODEL")
-            model = self.rlModule(policy=self.policy, env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS)
+            model = self.rlModule(policy=self.policy, env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.CARLA_SIMS_NO)
 
         return model
 

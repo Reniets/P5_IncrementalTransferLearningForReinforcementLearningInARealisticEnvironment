@@ -20,10 +20,7 @@ from PIL import Image
 
 class CarlaEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
-    def __init__(self, model=None, carlaInstance=0):
-
-        # Model
-        self.model = model
+    def __init__(self, carlaInstance=0):
 
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
@@ -39,6 +36,7 @@ class CarlaEnv(gym.Env):
         self.imgWidth = settings.CARLA_IMG_WIDTH
         self.imgHeight = settings.CARLA_IMG_HEIGHT
         self.episodeTicks = 0
+        self.totalTicks = 0
 
         # Video variables
         self.episodeNr = 0
@@ -68,6 +66,8 @@ class CarlaEnv(gym.Env):
         # Declare classes
         self.reward = Reward(self)
         self.mediaHandler = MediaHandler(self)
+
+        self.heyMan = "yeet"
 
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
@@ -132,6 +132,7 @@ class CarlaEnv(gym.Env):
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
         self.episodeTicks += 1
+        self.totalTicks += 1
 
         # Do action
         if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
@@ -151,7 +152,12 @@ class CarlaEnv(gym.Env):
         reward = self.reward.calcReward()
         self.episodeReward += reward
 
-        return self.imgFrame, reward, is_done, {}
+        if is_done and self.carlaInstance == 0 and self.mediaHandler.episodeFrames:
+            extra = {"episode": {"episodeNr": self.episodeNr, "frames": self.mediaHandler.episodeFrames}}
+        else:
+            extra = {}
+
+        return self.imgFrame, reward, is_done, extra
 
     def tick(self, timeout):
         self.frameNumber = self.world.tick()
