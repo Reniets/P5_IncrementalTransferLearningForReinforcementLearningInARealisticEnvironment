@@ -9,6 +9,7 @@ from stable_baselines.ppo2 import PPO2
 from stable_baselines.a2c import A2C
 from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
 from source.reward import Reward
+import numpy as np
 
 
 class Runner:
@@ -21,6 +22,7 @@ class Runner:
         self.modelNum = None
         self.nSteps = 0
         self.model = None
+        self.maxRewardAchieved = float('-inf')
 
     def train(self):
         self._setup()
@@ -60,6 +62,12 @@ class Runner:
 
         # info = _locals["ep_infos"]
         # print(f"{self.nSteps}: {info}")
+        mean = np.mean(_locals['returns'])
+        if self.maxRewardAchieved < mean:
+            self.maxRewardAchieved = mean
+            if self.nSteps > 1:
+                print(f"Saving best model: step {self.nSteps} reward: {mean}")
+                _locals['self'].save(f"log/{self.modelName}_{self.modelNum}_best.pkl")
 
         # Print stats every 100 calls
         if self.nSteps % settings.MODEL_EXPORT_RATE == 0:
