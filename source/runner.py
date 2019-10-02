@@ -58,8 +58,8 @@ class Runner:
     def _callback(self, _locals, _globals):
         self.nSteps += 1
 
-        info = _locals["ep_infos"]
-        print(f"{self.nSteps}: {info}")
+        # info = _locals["ep_infos"]
+        # print(f"{self.nSteps}: {info}")
 
         # Print stats every 100 calls
         if self.nSteps % settings.MODEL_EXPORT_RATE == 0:

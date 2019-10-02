@@ -38,7 +38,7 @@ class MediaHandler:
 
     def exportAndUploadVideoToDB(self):
         folder = "../data/videos"
-        file_name = f"videoTest_{self.carlaEnv.episodeNr}.avi"
+        file_name = f"videoTest_{self.carlaEnv.episodeNr}.mp4"
         video_path = folder + "/" + file_name
         model_path = f"temp/{settings.MODEL_NAME}_{self.carlaEnv.episodeNr}.pkl"
 
@@ -77,11 +77,18 @@ class MediaHandler:
 
     def _addFrameDataOverlay(self, frame):
         nn = NumpyNumbers()
-        speed = self.carlaEnv.getCarVelocity()
-        overlay = nn.getOverlay(round(speed))
-        x_offset = frame.shape[1] - overlay.shape[1]
 
-        self.addOverlayToFrame(frame, overlay, (0, x_offset))
+        speed = self.carlaEnv.getCarVelocity()
+        speed_overlay = nn.getOverlay(round(speed))
+        speed_x_offset = frame.shape[1] - speed_overlay.shape[1]
+
+        total_reward = self.carlaEnv.episodeReward
+        reward_overlay = nn.getOverlay(round(total_reward))
+        reward_x_offset = frame.shape[1] - reward_overlay.shape[1]
+        reward_y_offset = speed_overlay.shape[0] + 2
+
+        self.addOverlayToFrame(frame, speed_overlay, (0, speed_x_offset))
+        self.addOverlayToFrame(frame, reward_overlay, (reward_y_offset, reward_x_offset))
 
     # Exports a video from numpy arrays to the file system
     def _exportVideo(self, folder, file_name, frames):
@@ -93,7 +100,7 @@ class MediaHandler:
         video_size = (self._getVideoHeight(), self._getVideoWidth())
         fps = 1 / settings.AGENT_TIME_STEP_SIZE
 
-        out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, video_size)
+        out = cv2.VideoWriter(file_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, video_size)
 
         for frame in frames:
             out.write(frame)
