@@ -60,6 +60,7 @@ class CarlaEnv(gym.Env):
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
+        self.car_last_tick_transform = None
         self.car_last_tick_wheels_on_road = None
         self.car_last_episode_time = None
 
@@ -122,6 +123,7 @@ class CarlaEnv(gym.Env):
 
         # Set last tick variables to equal starting pos information
         self.car_last_tick_pos = self.vehicle.get_location()
+        self.car_last_tick_transform = self.vehicle.get_transform()
         self.car_last_tick_wheels_on_road = 4
 
         # Disengage brakes from earlier workaround
@@ -132,7 +134,7 @@ class CarlaEnv(gym.Env):
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
         self.episodeTicks += 1
-        self.totalTicks += 1
+        #self.totalTicks += 1
 
         # Do action
         if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
@@ -152,12 +154,12 @@ class CarlaEnv(gym.Env):
         reward = self.reward.calcReward()
         self.episodeReward += reward
 
-        if is_done and self.carlaInstance == 0 and self.mediaHandler.episodeFrames:
-            extra = {"episode": {"episodeNr": self.episodeNr, "frames": self.mediaHandler.episodeFrames}}
-        else:
-            extra = {}
+        # if is_done and self.carlaInstance == 0 and self.mediaHandler.episodeFrames:
+        #     extra = {"episode": {"episodeNr": self.episodeNr, "frames": self.mediaHandler.episodeFrames}}
+        # else:
+        #     extra = {}
 
-        return self.imgFrame, reward, is_done, extra
+        return self.imgFrame, reward, is_done, {}  # extra
 
     def tick(self, timeout):
         self.frameNumber = self.world.tick()
@@ -196,6 +198,7 @@ class CarlaEnv(gym.Env):
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
+        self.car_last_tick_transform = None
         self.car_last_tick_wheels_on_road = None
         self.car_last_episode_time = time.time()
 
@@ -232,6 +235,7 @@ class CarlaEnv(gym.Env):
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
+        # print(self.wheelsOnGrass)
         return self.imgFrame is None or self.wheelsOnGrass != 0
 
     # Creates a new vehicle and spawns it into the world as an actor
