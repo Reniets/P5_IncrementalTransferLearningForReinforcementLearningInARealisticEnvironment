@@ -78,17 +78,30 @@ class MediaHandler:
     def _addFrameDataOverlay(self, frame):
         nn = NumpyNumbers()
 
+        y_offset = nn.number_size[0] + 2
+
+        # Speed
         speed = self.carlaEnv.getCarVelocity()
         speed_overlay = nn.getOverlay(round(speed))
-        speed_x_offset = frame.shape[1] - speed_overlay.shape[1]
 
+        # Reward
         total_reward = self.carlaEnv.episodeReward
         reward_overlay = nn.getOverlay(round(total_reward))
-        reward_x_offset = frame.shape[1] - reward_overlay.shape[1]
-        reward_y_offset = speed_overlay.shape[0] + 2
 
-        self.addOverlayToFrame(frame, speed_overlay, (0, speed_x_offset))
-        self.addOverlayToFrame(frame, reward_overlay, (reward_y_offset, reward_x_offset))
+        # Actions
+        controls = self.carlaEnv.vehicle.get_control()
+        throttle_overlay = nn.getOverlay(round(controls.throttle*100))
+        brake_overlay = nn.getOverlay(round(controls.brake*100))
+        steer_overlay = nn.getOverlay(round(controls.steer*100))
+
+        self.addOverlayToFrame(frame, speed_overlay,    (y_offset * 0, self._getXOffset(frame, speed_overlay)))
+        self.addOverlayToFrame(frame, reward_overlay,   (y_offset * 1, self._getXOffset(frame, reward_overlay)))
+        self.addOverlayToFrame(frame, throttle_overlay, (y_offset * 2, self._getXOffset(frame, throttle_overlay)))
+        self.addOverlayToFrame(frame, brake_overlay,    (y_offset * 3, self._getXOffset(frame, brake_overlay)))
+        self.addOverlayToFrame(frame, steer_overlay,    (y_offset * 4, self._getXOffset(frame, steer_overlay)))
+
+    def _getXOffset(self, frame, overlay):
+        return frame.shape[1] - overlay.shape[1]
 
     # Exports a video from numpy arrays to the file system
     def _exportVideo(self, folder, file_name, frames):

@@ -58,6 +58,7 @@ class CarlaEnv(gym.Env):
         self.episodeReward = None
         self.frameNumber = 0
         self.queues = []  # List of tuples (queue, dataProcessingFunction)
+        self.lastAction = None
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
@@ -81,7 +82,7 @@ class CarlaEnv(gym.Env):
             # 1) Throttle: Discrete 4 - [0]:0.0, [1]:0.3, [2]:0.6, [3]:1.0
             # 2) Brake: Discrete 3 - [0]:0.0, [1]:0.5, [2]:1
             # 3) Steer: Discrete 5 - [0]:-1.0, [1]:-0.5, [2]:0.0, [3]:0.5, [4]:1.0
-            self.action_space = MultiDiscrete([4, 3, 5])
+            self.action_space = MultiDiscrete([4, 3, 7])
             self.throttleMapLen = float(self.action_space.nvec[0]-1)
             self.brakeMapLen = float(self.action_space.nvec[1]-1)
             self.steerMapLen = float(self.action_space.nvec[2]-1)/2
@@ -190,6 +191,7 @@ class CarlaEnv(gym.Env):
         self.episodeTicks = 0
         self.episodeReward = None
         self.queues = []
+        self.lastAction = None
 
         # Early stopping
         self.grassLocation = None
@@ -281,7 +283,8 @@ class CarlaEnv(gym.Env):
         self.vehicle.apply_control(carla.VehicleControl(
             throttle=DISCRETE_ACTIONS[Action(action)][0],
             brake=DISCRETE_ACTIONS[Action(action)][1],
-            steer=DISCRETE_ACTIONS[Action(action)][2]
+            steer=DISCRETE_ACTIONS[Action(action)][2],
+            manual_gear_shift=False
         ))
 
     def _applyActionMultiDiscrete(self, action):
@@ -289,7 +292,8 @@ class CarlaEnv(gym.Env):
         self.vehicle.apply_control(carla.VehicleControl(
             throttle=action[0]/self.throttleMapLen,
             brake=action[1]/self.brakeMapLen,
-            steer=(action[2]/self.steerMapLen)-1
+            steer=(action[2]/self.steerMapLen)-1,
+            manual_gear_shift=False
         ))
 
     # Applies a box action to the vehicle
@@ -298,6 +302,7 @@ class CarlaEnv(gym.Env):
             throttle=float(action[0]),
             brake=float(action[1]),
             steer=float(action[2]),
+            manual_gear_shift=False
         ))
 
     # Returns the amount of meters traveled since last tick

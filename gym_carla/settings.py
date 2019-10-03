@@ -21,8 +21,8 @@ VIDEO_ALWAYS_ON = False  # Bool
 # Model settings
 MODEL_RL_MODULE = "PPO2"
 MODEL_POLICY = "CnnLstmPolicy"
-MODEL_NUMBER = 32  # int|None. If int carla will try to load model, if none it will never even try!
+MODEL_NUMBER = None  # int|None. If int carla will try to load model, if none it will never even try!
 MODEL_USE_TENSORBOARD_LOG = True  # Bool
 MODEL_EXPORT_RATE = 100 if MODEL_RL_MODULE is "PPO2" else 2000  # Callback steps (Dependent on n_steps of rl_module, ppo2=128, a2c=5)
 MODEL_N_STEPS = 256
-MODEL_ACTION_TYPE = 2  # 0: Discrete, 1: MultiDiscrete, 2: Box
+MODEL_ACTION_TYPE = 1  # 0: Discrete, 1: MultiDiscrete, 2: Box

@@ -24,12 +24,11 @@ class Runner:
         self.maxRewardAchieved = float('-inf')
 
         self.modelName = f"{settings.MODEL_RL_MODULE}" \
-                         f"_action-{ActionType(settings.MODEL_ACTION_TYPE).name}" \
-                         f"_steps-{settings.CARLA_SECONDS_PER_EPISODE}" \
+                         f"_{ActionType(settings.MODEL_ACTION_TYPE).name}" \
+                         f"_seconds-{settings.CARLA_SECONDS_PER_EPISODE}" \
                          f"_policy-{settings.MODEL_POLICY}" \
                          f"_Sims-{settings.CARLA_SIMS_NO}" \
-                         f"_MoreGrassPenalty" \
-                         f"_MoreTurnSensi"
+                         f"_MoreGrassPenalty_MoreTurnSensi"
 
 
 
