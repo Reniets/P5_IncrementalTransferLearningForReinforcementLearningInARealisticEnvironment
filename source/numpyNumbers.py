@@ -13,7 +13,7 @@ class NumpyNumbers:
         numbers = None
 
         for num in number_str:
-            numpy = self._getImageNumber(10 if num == '-' else int(num))  # Fix for negative numbers
+            numpy = self._getImageNumber(10 if num == '-' else int(num))  # Fix for negative numbers (10 returns a "-" sign)
 
             if numbers is None:
                 numbers = numpy
