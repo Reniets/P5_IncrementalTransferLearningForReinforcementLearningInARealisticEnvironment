@@ -7,7 +7,7 @@ from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.ppo2 import PPO2
 from stable_baselines.a2c import A2C
-from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action
+from gym_carla.carla_utils import startCarlaSims, killCarlaSims, Action, ActionType
 from source.reward import Reward
 import numpy as np
 
@@ -18,11 +18,20 @@ class Runner:
         self.rlModule = None
         self.policy = None
         self.newModel = None
-        self.modelName = None
         self.modelNum = None
         self.nSteps = 0
         self.model = None
         self.maxRewardAchieved = float('-inf')
+
+        self.modelName = f"{settings.MODEL_RL_MODULE}" \
+                         f"_action-{ActionType(settings.MODEL_ACTION_TYPE).name}" \
+                         f"_steps-{settings.CARLA_SECONDS_PER_EPISODE}" \
+                         f"_policy-{settings.MODEL_POLICY}" \
+                         f"_Sims-{settings.CARLA_SIMS_NO}" \
+                         f"_MoreGrassPenalty" \
+                         f"_MoreTurnSensi"
+
+
 
     def train(self):
         self._setup()
@@ -49,12 +58,11 @@ class Runner:
     def _setup(self):
         # Setup environment
         startCarlaSims()
-        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
+        self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', name=self.modelName, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
 
         # Decide which RL module and policy
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
         self.policy = getattr(sys.modules[__name__], settings.MODEL_POLICY)
-        self.modelName = settings.MODEL_NAME
         self.modelNum = settings.MODEL_NUMBER if settings.MODEL_NUMBER is not None else 0
 
     def _callback(self, _locals, _globals):
@@ -62,7 +70,7 @@ class Runner:
 
         # info = _locals["ep_infos"]
         # print(f"{self.nSteps}: {info}")
-        mean = np.mean(_locals['returns'])
+        mean = np.sum(_locals['true_reward'])
         if self.maxRewardAchieved < mean:
             self.maxRewardAchieved = mean
             if self.nSteps > 1:

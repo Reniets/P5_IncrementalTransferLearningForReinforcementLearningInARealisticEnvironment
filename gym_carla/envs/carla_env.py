@@ -20,11 +20,12 @@ from PIL import Image
 
 class CarlaEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
-    def __init__(self, carlaInstance=0):
+    def __init__(self, name="NoNameWasGiven", carlaInstance=0):
 
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
         self.client.set_timeout(2.0)
+        self.modelName = name
 
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
@@ -41,7 +42,7 @@ class CarlaEnv(gym.Env):
         # Video variables
         self.episodeNr = 0
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession(settings.MODEL_NAME) if (self.carlaInstance == 0) else None
+        self.sessionId = self.sql.INSERT_newSession(self.modelName) if (self.carlaInstance == 0) else None
 
         # Early stopping variables
         self.grassLocation = None
@@ -68,8 +69,6 @@ class CarlaEnv(gym.Env):
         self.reward = Reward(self)
         self.mediaHandler = MediaHandler(self)
 
-        self.heyMan = "yeet"
-
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
 
@@ -88,7 +87,7 @@ class CarlaEnv(gym.Env):
             self.steerMapLen = float(self.action_space.nvec[2]-1)/2
         elif settings.MODEL_ACTION_TYPE == ActionType.BOX.value:
             # [Throttle, Steer, brake]
-            self.action_space = Box(np.array([0, 0, -0.5]), np.array([+1, +1, +0.5]), dtype=np.float32)
+            self.action_space = Box(np.array([0, 0, -1]), np.array([+1, +1, +1]), dtype=np.float32)
         else:
             raise Exception("No such action type, change settings")
 
@@ -241,7 +240,7 @@ class CarlaEnv(gym.Env):
     # Creates a new vehicle and spawns it into the world as an actor
     # Returns the vehicle
     def _createNewVehicle(self):
-        vehicle_blueprint = self.blueprintLibrary.filter('model3')[0]
+        vehicle_blueprint = self.blueprintLibrary.filter('test')[0]
         vehicle_spawn_transform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
         return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle
 
@@ -249,7 +248,7 @@ class CarlaEnv(gym.Env):
     # Returns the sensor
     def _createSegmentationSensor(self):
         # Make segmentation sensor blueprint
-        seg_sensor_blueprint = self.blueprintLibrary.find('sensor.camera.semantic_segmentation')
+        seg_sensor_blueprint = self.blueprintLibrary.find('sensor.camera.modified_semantic_segmentation')
         seg_sensor_blueprint.set_attribute('image_size_x', str(self.imgWidth))
         seg_sensor_blueprint.set_attribute('image_size_y', str(self.imgHeight))
         seg_sensor_blueprint.set_attribute('fov', '110')

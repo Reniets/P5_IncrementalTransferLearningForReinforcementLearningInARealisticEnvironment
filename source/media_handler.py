@@ -40,7 +40,7 @@ class MediaHandler:
         folder = "../data/videos"
         file_name = f"videoTest_{self.carlaEnv.episodeNr}.mp4"
         video_path = folder + "/" + file_name
-        model_path = f"temp/{settings.MODEL_NAME}_{self.carlaEnv.episodeNr}.pkl"
+        model_path = f"temp/{self.carlaEnv.modelName}_{self.carlaEnv.episodeNr}.pkl"
 
         self._exportVideo(folder, file_name, self.episodeFrames)
         # self.carlaEnv.model.save(model_path)

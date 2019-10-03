@@ -6,14 +6,14 @@ class Reward:
     def calcReward(self):
         reward = 0
 
-        reward += self._rewardDriveFarOnRoad() * 1.00  # Reward (points pr. meter driven on road pr. tire on road pr. tick)
-        reward += self._rewardAvoidGrass() * 2.00  # Penalty (Points pr. tire on grass pr. tick)
-        reward += self._rewardTurnSensitivity() * 0.055  # Penalty (Points pr. degree pr. tire on road pr. tick)
-        # reward += self._rewardSubGoal()             * weight
+        # reward += self._rewardSubGoal()           * weight
+        reward += self._rewardDriveFarOnRoad()      * 1.00  # Reward (points pr. meter driven on road pr. tire on road pr. tick)
+        reward += self._rewardAvoidGrass()          * 2.00  # Penalty (Points pr. tire on grass pr. tick)
+        reward += self._rewardTurnSensitivity()     * 0.10  # Penalty (Points pr. degree pr. tire on road pr. tick) (Initial value: 0.055)
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
-        # reward += self._rewardDriveFast()         * 0.10
+        # reward += self._rewardDriveFast()           * 0.10  # Reward
 
         self._updateLastTickVariables()  # MUST BE LAST THING IN REWARD FUNCTION
 
