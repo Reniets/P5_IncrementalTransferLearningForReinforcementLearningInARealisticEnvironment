@@ -24,11 +24,18 @@ class CarlaSyncEnv(gym.Env):
     def __init__(self, lock, thread_count, carlaInstance=0):
 
         # Connect a client
-        self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
+        self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
         self.client.set_timeout(2.0)
 
         self.thread_count = thread_count
         self.tick_lock = lock
+
+        global frameNumber, waiting_threads
+        with self.tick_lock:
+            if frameNumber is None:
+                frameNumber = 0
+            if waiting_threads is None:
+                waiting_threads = 0
 
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
@@ -59,8 +66,7 @@ class CarlaSyncEnv(gym.Env):
         self.wheelsOnGrass = None
         self.episodeStartTime = 0
         self.episodeReward = None
-        global frameNumber
-        frameNumber = 0
+
         self.queues = []  # List of tuples (queue, dataProcessingFunction)
 
         # Declare reward dependent values
@@ -168,7 +174,10 @@ class CarlaSyncEnv(gym.Env):
         global frameNumber, waiting_threads
 
         self.tick_lock.acquire()
+        if waiting_threads is None:
+            waiting_threads = 0
         waiting_threads += 1
+
         if waiting_threads < self.thread_count:
             self.tick_lock.wait()
             # Wait until someone notifies that the world has ticked
