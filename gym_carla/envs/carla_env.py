@@ -81,7 +81,7 @@ class CarlaEnv(gym.Env):
         elif settings.MODEL_ACTION_TYPE == ActionType.MULTI_DISCRETE.value:
             # 1) Throttle: Discrete 4 - [0]:0.0, [1]:0.3, [2]:0.6, [3]:1.0
             # 2) Brake: Discrete 3 - [0]:0.0, [1]:0.5, [2]:1
-            # 3) Steer: Discrete 5 - [0]:-1.0, [1]:-0.5, [2]:0.0, [3]:0.5, [4]:1.0
+            # 3) Steer: Discrete 5 - [0]:-1.0, [1]:-0.3, [2]:-0.6, [3]:0.0, [4]:0.3, [5]:0.6, [6]:1.0
             self.action_space = MultiDiscrete([4, 3, 7])
             self.throttleMapLen = float(self.action_space.nvec[0]-1)
             self.brakeMapLen = float(self.action_space.nvec[1]-1)
@@ -92,7 +92,7 @@ class CarlaEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
-        if settings.AGENT_SYNCED: self.tick(10)
+        if settings.AGENT_SYNCED: self.tick(30)
 
     ''':returns initial observation'''
     def reset(self):
@@ -146,7 +146,7 @@ class CarlaEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
-        if settings.AGENT_SYNCED: self.tick(10)
+        if settings.AGENT_SYNCED: self.tick(30)
 
         is_done = self._isDone()  # Must be calculated before rewards
 

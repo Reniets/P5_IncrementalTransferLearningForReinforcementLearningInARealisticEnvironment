@@ -1,41 +1,36 @@
 import math
 import os
 import queue
+import random
+
 import gym
 from gym.spaces import Discrete, Box, Tuple, MultiDiscrete
 from database.sql import Sql
 import numpy as np
 from gym_carla.carla_utils import *
 import cv2
-
 # Import classes
 from source.reward import Reward
 from source.media_handler import MediaHandler
-
+from multiprocessing import Condition, Lock
 makeCarlaImportable()
 import carla
 from PIL import Image
 
-global frameNumber, waiting_threads
-
 
 class CarlaSyncEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
-    def __init__(self, lock, thread_count, carlaInstance=0):
+
+    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, name="NoNameWasGiven"):
 
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
         self.client.set_timeout(2.0)
-
         self.thread_count = thread_count
         self.tick_lock = lock
-
-        global frameNumber, waiting_threads
-        with self.tick_lock:
-            if frameNumber is None:
-                frameNumber = 0
-            if waiting_threads is None:
-                waiting_threads = 0
+        self.modelName = name
+        self.frameNumber = frameNumber
+        self.waiting_threads = waiting_threads
 
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
@@ -52,7 +47,7 @@ class CarlaSyncEnv(gym.Env):
         # Video variables
         self.episodeNr = 0
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession(settings.MODEL_NAME) if (self.carlaInstance == 0) else None
+        self.sessionId = self.sql.INSERT_newSession(self.modelName) if (self.carlaInstance == 0) else None
 
         # Early stopping variables
         self.grassLocation = None
@@ -101,7 +96,7 @@ class CarlaSyncEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
-        if settings.AGENT_SYNCED: self.tick(10)
+        if settings.AGENT_SYNCED: self.tick(30)
 
     ''':returns initial observation'''
     def reset(self):
@@ -137,7 +132,6 @@ class CarlaSyncEnv(gym.Env):
 
         # Disengage brakes from earlier workaround
         self._applyActionDiscrete(Action.DO_NOTHING.value)
-
         return self.imgFrame  # Returns initial observation (First image)
 
     ''':returns (obs, reward, done, extra)'''
@@ -155,7 +149,8 @@ class CarlaSyncEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
-        if settings.AGENT_SYNCED: self.tick(10)
+        if settings.AGENT_SYNCED:
+            self.tick(30)
 
         is_done = self._isDone()  # Must be calculated before rewards
 
@@ -171,29 +166,23 @@ class CarlaSyncEnv(gym.Env):
         return self.imgFrame, reward, is_done, {}  # extra
 
     def synchronized_world_tick(self):
-        global frameNumber, waiting_threads
-
         self.tick_lock.acquire()
-        if waiting_threads is None:
-            waiting_threads = 0
-        waiting_threads += 1
-
-        if waiting_threads < self.thread_count:
+        self.waiting_threads.value += 1
+        if self.waiting_threads.value < self.thread_count:
             self.tick_lock.wait()
             # Wait until someone notifies that the world has ticked
         else:
-            frameNumber = self.world.tick()
-            waiting_threads = 0
+            self.frameNumber.value = self.world.tick()
+
+            self.waiting_threads.value = 0
             self.tick_lock.notify_all()
         self.tick_lock.release()
 
     def tick(self, timeout):
         self.synchronized_world_tick()
 
-        global frameNumber
-
         data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
-        assert all(x.frame == frameNumber for x in data)
+        assert all(x.frame == self.frameNumber.value for x in data)
         return data
 
     def _makeQueue(self, registerEvent, processData):
@@ -202,12 +191,11 @@ class CarlaSyncEnv(gym.Env):
         self.queues.append((q, processData))
 
     def _retrieve_data(self, queueTuple, timeout):
-        global frameNumber
         while True:
             data = queueTuple[0].get(timeout=timeout)
             dataProcessFunction = queueTuple[1]
 
-            if data.frame == frameNumber:
+            if data.frame == self.frameNumber.value:
                 dataProcessFunction(data)  # Process data
                 return data
 
@@ -238,6 +226,10 @@ class CarlaSyncEnv(gym.Env):
     def _createActors(self):
         # Spawn vehicle
         self.vehicle = self._createNewVehicle()
+        #print(self.vehicle.attributes)
+        #self.vehicle.attributes['color'] = '255,0,0'
+        #print(self.vehicle.attributes)
+
         self.actorList.append(self.vehicle)  # Add to list of actors which makes it easy to clean up later
 
         # Make segmentation sensor blueprint
@@ -260,9 +252,8 @@ class CarlaSyncEnv(gym.Env):
     # Waits until the world is ready for training
     def _waitForWorldToBeReady(self):
         self.synchronized_world_tick()
-
         while self._isWorldNotReady():
-            if settings.AGENT_SYNCED: self.tick(10)
+            if settings.AGENT_SYNCED: self.tick(30)
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
@@ -273,6 +264,9 @@ class CarlaSyncEnv(gym.Env):
     # Returns the vehicle
     def _createNewVehicle(self):
         vehicle_blueprint = self.blueprintLibrary.filter('test')[0]
+        color = random.choice(vehicle_blueprint.get_attribute('color').recommended_values)
+        vehicle_blueprint.set_attribute('color', '0,255,0')
+
         vehicle_spawn_transform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
         return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle
 
@@ -371,7 +365,7 @@ class CarlaSyncEnv(gym.Env):
         car_on_grass = self._isCarOnGrass()
         max_negative_reward = self._isMaxNegativeRewardAccumulated()
 
-        return episode_expired or is_stuck_on_grass  # or car_on_grass or max_negative_reward
+        return episode_expired #or is_stuck_on_grass  # or car_on_grass or max_negative_reward
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
