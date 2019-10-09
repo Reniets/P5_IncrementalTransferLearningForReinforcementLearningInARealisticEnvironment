@@ -21,8 +21,7 @@ from PIL import Image
 class CarlaSyncEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
 
-    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, name="NoNameWasGiven"):
-
+    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, world_ticks=None, name="NoNameWasGiven", runner=None):
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
         self.client.set_timeout(2.0)
@@ -31,6 +30,7 @@ class CarlaSyncEnv(gym.Env):
         self.modelName = name
         self.frameNumber = frameNumber
         self.waiting_threads = waiting_threads
+        self.world_ticks = world_ticks
 
         # Set necessary instance variables related to client
         self.world = self.client.get_world()
@@ -57,12 +57,17 @@ class CarlaSyncEnv(gym.Env):
         self.vehicle = None
         self.segSensor = None
         self.grassSensor = None
+        self.splineSensor = None
         self.imgFrame = None
         self.wheelsOnGrass = None
         self.episodeStartTime = 0
         self.episodeReward = None
+        self.distanceOnSpline = None
+        self.splineMaxDistance = None
 
         self.queues = []  # List of tuples (queue, dataProcessingFunction)
+
+        self.runner = runner
 
         # Declare reward dependent values
         self.car_last_tick_pos = None
@@ -86,7 +91,7 @@ class CarlaSyncEnv(gym.Env):
             # 1) Throttle: Discrete 4 - [0]:0.0, [1]:0.3, [2]:0.6, [3]:1.0
             # 2) Brake: Discrete 3 - [0]:0.0, [1]:0.5, [2]:1
             # 3) Steer: Discrete 5 - [0]:-1.0, [1]:-0.5, [2]:0.0, [3]:0.5, [4]:1.0
-            self.action_space = MultiDiscrete([4, 3, 5])
+            self.action_space = MultiDiscrete([4, 3, 21])
             self.throttleMapLen = float(self.action_space.nvec[0]-1)
             self.brakeMapLen = float(self.action_space.nvec[1]-1)
             self.steerMapLen = float(self.action_space.nvec[2]-1)/2
@@ -172,6 +177,8 @@ class CarlaSyncEnv(gym.Env):
             self.tick_lock.wait()
             # Wait until someone notifies that the world has ticked
         else:
+            if self.world_ticks is not None:
+                self.world_ticks.value += 1
             self.frameNumber.value = self.world.tick()
 
             self.waiting_threads.value = 0
@@ -240,6 +247,9 @@ class CarlaSyncEnv(gym.Env):
         self.grassSensor = self._createGrassSensor()
         self.actorList.append(self.grassSensor)
 
+        self.splineSensor = self._createSplineSensor()
+        self.actorList.append(self.splineSensor)
+
     # Destroy all previous actors, and clear actor list
     def _resetActorList(self):
         # Destroy all actors from previous episode
@@ -300,6 +310,18 @@ class CarlaSyncEnv(gym.Env):
         # grass_sensor.listen(self._grass_data)
         # Return created actor
         return grass_sensor
+
+    # Creates a new spline distance sensor and spawns it into the world as an actor
+    # Returns the sensor
+    def _createSplineSensor(self):
+        # Sensor blueprint
+        spline_blueprint = self.blueprintLibrary.find('sensor.other.spline_distance')
+
+        # Grass sensor actor
+        spline_sensor = self.world.spawn_actor(spline_blueprint, carla.Transform(), attach_to=self.vehicle)
+        self._makeQueue(spline_sensor.listen, processData=self._spline_data)
+        # Return created actor
+        return spline_sensor
 
     # Applies a discrete action to the vehicle
     def _applyActionDiscrete(self, action):
@@ -395,3 +417,9 @@ class CarlaSyncEnv(gym.Env):
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
         # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
 
+    def _spline_data(self, event):
+        self.distanceOnSpline = event[0]
+        self.splineMaxDistance = event[1]
+
+        if self.carlaInstance is 0 and (self.episodeTicks + 1) % 100 == 0: print(f"Progress: {self.distanceOnSpline/self.splineMaxDistance*100:.2f}%")
+        # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
