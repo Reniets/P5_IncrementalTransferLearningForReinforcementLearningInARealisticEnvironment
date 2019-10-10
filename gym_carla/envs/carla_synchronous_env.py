@@ -247,8 +247,8 @@ class CarlaSyncEnv(gym.Env):
         self.grassSensor = self._createGrassSensor()
         self.actorList.append(self.grassSensor)
 
-        self.splineSensor = self._createSplineSensor()
-        self.actorList.append(self.splineSensor)
+        # self.splineSensor = self._createSplineSensor()
+        # self.actorList.append(self.splineSensor)
 
     # Destroy all previous actors, and clear actor list
     def _resetActorList(self):
