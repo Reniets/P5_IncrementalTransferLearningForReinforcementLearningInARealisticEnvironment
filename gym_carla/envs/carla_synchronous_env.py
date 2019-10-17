@@ -45,7 +45,7 @@ class CarlaSyncEnv(gym.Env):
         self.totalTicks = 0
 
         # Video variables
-        self.episodeNr = 0
+        self.episodeNr = 0  # TODO WARNING: be careful using this as it also counts validation episodes
         self.sql = Sql()
         self.sessionId = self.sql.INSERT_newSession(self.modelName) if (self.carlaInstance == 0) else None
 
@@ -64,6 +64,7 @@ class CarlaSyncEnv(gym.Env):
         self.episodeReward = None
         self.distanceOnSpline = None
         self.splineMaxDistance = None
+        self.previousDistanceOnSpline = None
 
         self.queues = []  # List of tuples (queue, dataProcessingFunction)
 
@@ -103,13 +104,16 @@ class CarlaSyncEnv(gym.Env):
 
         if settings.AGENT_SYNCED: self.tick(30)
 
+    def close(self):
+        self._resetActorList()
+
     ''':returns initial observation'''
     def reset(self):
-        self.episodeNr += 1  # Count episodes
+        self.episodeNr += 1  # Count episodes TODO WARNING: be careful using this as it also counts validation episodes
 
         # Print episode and reward for that episode
         if self.carlaInstance == 0 and self.car_last_episode_time is not None:
-            print(f"Episode: {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
+            print(f"Episode:  {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
@@ -189,6 +193,13 @@ class CarlaSyncEnv(gym.Env):
         self.synchronized_world_tick()
 
         data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
+        # assert all(x.frame == self.frameNumber.value for x in data)
+        return data
+
+    def tick_unsync(self, timeout):
+        self.frameNumber.value = self.world.tick()
+
+        data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
         assert all(x.frame == self.frameNumber.value for x in data)
         return data
 
@@ -226,6 +237,7 @@ class CarlaSyncEnv(gym.Env):
         self.car_last_tick_transform = None
         self.car_last_tick_wheels_on_road = None
         self.car_last_episode_time = time.time()
+        self.previousDistanceOnSpline = None
 
         # Video
         self.mediaHandler.episodeFrames = []
@@ -247,8 +259,8 @@ class CarlaSyncEnv(gym.Env):
         self.grassSensor = self._createGrassSensor()
         self.actorList.append(self.grassSensor)
 
-        # self.splineSensor = self._createSplineSensor()
-        # self.actorList.append(self.splineSensor)
+        self.splineSensor = self._createSplineSensor()
+        self.actorList.append(self.splineSensor)
 
     # Destroy all previous actors, and clear actor list
     def _resetActorList(self):
@@ -261,9 +273,12 @@ class CarlaSyncEnv(gym.Env):
 
     # Waits until the world is ready for training
     def _waitForWorldToBeReady(self):
-        self.synchronized_world_tick()
+        self.tick_lock.acquire()
         while self._isWorldNotReady():
-            if settings.AGENT_SYNCED: self.tick(30)
+            if settings.AGENT_SYNCED: self.tick_unsync(30)
+        self.tick_lock.release()
+
+        self.tick(30)
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
@@ -277,7 +292,11 @@ class CarlaSyncEnv(gym.Env):
         color = random.choice(vehicle_blueprint.get_attribute('color').recommended_values)
         vehicle_blueprint.set_attribute('color', '0,255,0')
 
-        vehicle_spawn_transform = self.world.get_map().get_spawn_points()[0]  # Pick first (and probably only) spawn point
+        vehicle_spawn_transforms = self.world.get_map().get_spawn_points()
+        if settings.USE_RANDOM_SPAWN_POINTS:
+            vehicle_spawn_transform = random.choice(vehicle_spawn_transforms)  # Pick a random spawn point
+        else:
+            vehicle_spawn_transform = vehicle_spawn_transforms[0]  # Use the first spawn point
         return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle
 
     # Creates a new segmentation sensor and spawns it into the world as an actor
@@ -379,6 +398,16 @@ class CarlaSyncEnv(gym.Env):
 
         return kph
 
+    def getDistanceMovedAlongSpline(self):
+        distanceAlongSpline = self.distanceOnSpline - self.previousDistanceOnSpline if self.previousDistanceOnSpline is not None else 0
+        if distanceAlongSpline < -0.8 * self.splineMaxDistance:  # If the car has completed an entire loop the distance moved will be a negative number close to the max spline distance
+            distanceAlongSpline = self.splineMaxDistance - self.previousDistanceOnSpline + self.distanceOnSpline  # Should instead be the distance to the finish line + the distance past the finish line
+        elif distanceAlongSpline > 0.8 * self.splineMaxDistance:  # If the car somehow reverses by the finish line it will have moved a distance close to max spline distance
+            distanceAlongSpline = -(self.previousDistanceOnSpline + (self.splineMaxDistance - self.distanceOnSpline))  # Should instead be the negative distance that the vehicle moved backwards
+        elif abs(distanceAlongSpline) > 1000:
+            distanceAlongSpline = 0
+        return distanceAlongSpline/100
+
     # Returns true if the current episode should be stopped
     def _isDone(self):
         # If episode length is exceeded it is done
@@ -391,7 +420,19 @@ class CarlaSyncEnv(gym.Env):
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
-        return self.episodeTicks > settings.CARLA_TICKS_PER_EPISODE
+        if settings.CARLA_SECONDS_MODE_LINEAR:
+            scale = min((self.episodeNr / settings.CARLA_SECONDS_PER_EPISODE_EPISODE_RANGE), 1)                         # Calculate scale depending on episode nr
+            range_diff = settings.CARLA_SECONDS_PER_EPISODE_LINEAR_MAX - settings.CARLA_SECONDS_PER_EPISODE_LINEAR_MIN  # Calculate min / max difference
+            total_seconds = settings.CARLA_SECONDS_PER_EPISODE_LINEAR_MIN + (range_diff * scale)                        # Calculate current total episodes
+
+            # if self.carlaInstance == 0:
+            #     print(str(total_seconds))
+
+            total_max_episode_ticks = int(total_seconds * (1 / settings.AGENT_TIME_STEP_SIZE))                          # Calculate new total_max_episode_ticks
+        else:
+            total_max_episode_ticks = settings.CARLA_TICKS_PER_EPISODE_STATIC
+
+        return self.episodeTicks > total_max_episode_ticks
 
     # Returns true if all four wheels are not on the road
     def _isCarOnGrass(self):
@@ -421,5 +462,4 @@ class CarlaSyncEnv(gym.Env):
         self.distanceOnSpline = event[0]
         self.splineMaxDistance = event[1]
 
-        if self.carlaInstance is 0 and (self.episodeTicks + 1) % 100 == 0: print(f"Progress: {self.distanceOnSpline/self.splineMaxDistance*100:.2f}%")
-        # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
+        # if self.carlaInstance is 0 and (self.episodeTicks + 1) % 100 == 0: print(f"Progress: {self.distanceOnSpline/self.splineMaxDistance*100:.2f}%")

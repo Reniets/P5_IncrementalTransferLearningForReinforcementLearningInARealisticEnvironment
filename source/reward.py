@@ -7,10 +7,11 @@ class Reward:
         reward = 0
 
         # reward += self._rewardSubGoal()           * weight
-        reward += self._rewardDriveFarOnRoad()      * 1.00  # Reward (points pr. meter driven on road pr. tire on road pr. tick)
+        # reward += self._rewardDriveFarOnRoad()      * 1.00  # Reward (points pr. meter driven on road pr. tire on road pr. tick)
         reward += self._rewardAvoidGrass()          * 2.00  # Penalty (Points pr. tire on grass pr. tick)
-        reward += self._rewardTurnSensitivity()     * 0.10  # Penalty (Points pr. degree pr. tire on road pr. tick) (Initial value: 0.055)
-        reward += self._dontStandStill()            * 8.00  # Penalty (Points pr. step below a speed limit)
+        reward += self._rewardTurnSensitivity()     * 0.15  # Penalty (Points pr. degree pr. tire on road pr. tick) (Initial value: 0.055)
+        reward += self._dontStandStill()            * 4.00  # Penalty (Points pr. step below a speed limit)
+        reward += self._followSpline()              * 4.00  # Reward (points pr. meter driven following spline pr. tire on road pr. tick)
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward
@@ -67,6 +68,7 @@ class Reward:
         self.carlaEnv.car_last_tick_pos = self.carlaEnv.vehicle.get_location()
         self.carlaEnv.car_last_tick_transform = self.carlaEnv.vehicle.get_transform()
         self.carlaEnv.car_last_tick_wheels_on_road = self.carlaEnv.wheelsOnRoad()
+        self.carlaEnv.previousDistanceOnSpline = self.carlaEnv.distanceOnSpline
 
     # Returns the difference from current tick to last tick of how many wheels are currently on the road
     # Also updates last to current tick
@@ -87,3 +89,6 @@ class Reward:
         reward -= self.carlaEnv.wheelsOnGrass
 
         return reward
+
+    def _followSpline(self):
+        return self.carlaEnv.getDistanceMovedAlongSpline()

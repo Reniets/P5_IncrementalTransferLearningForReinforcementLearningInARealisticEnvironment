@@ -60,7 +60,7 @@ def startCarlaSims():
     for host in range(settings.CARLA_SIMS_NO):
         winX = (host*resWidth)+400
         winY = 950-resHeight
-        subprocess.Popen(['./CarlaUE4.sh' + f" -windowed -ResX={resWidth} -ResY={resHeight} -WinX={winX} -WinY={winY} -fps=1 -carla-rpc-port={str(settings.CARLA_SIMS[host][1])}"], cwd=settings.CARLA_PATH, shell=True)
+        subprocess.Popen(['./CarlaUE4.sh' + f" -opengl -windowed -ResX={resWidth} -ResY={resHeight} -WinX={winX} -WinY={winY} -fps=1 -carla-rpc-port={str(settings.CARLA_SIMS[host][1])}"], cwd=settings.CARLA_PATH, shell=True)
         time.sleep(4)  # If DISPLAY is off, sleep longer
 
     for host in range(settings.CARLA_SIMS_NO):
@@ -93,6 +93,15 @@ def killCarlaSims():
     for process in psutil.process_iter():
         if process.name().lower().startswith('carlaue4'):
             process.terminate()
+    hasEnded = False
+    while not hasEnded:
+        wasFound = False
+        for process in psutil.process_iter():
+            if process.name().lower().startswith('carlaue4'):
+                wasFound = True
+                time.sleep(0.1)
+                break
+        hasEnded = not wasFound
 
 
 def restartCarlaSims():

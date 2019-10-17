@@ -141,7 +141,7 @@ class MediaHandler:
                         image[a + offset[0], b + offset[1], c] = frame_pixel
 
     def createSpeedBarOverlay(self, speed, height, width):
-        max_speed = 80  # km/h
+        max_speed = 110  # km/h
         scale = min(speed / max_speed, 1)
 
         speed_pixel_width = round(width * scale)

@@ -9,8 +9,9 @@ from gym_carla.carla_utils import *
 import cv2
 
 # Import classes
-from source.reward import Reward
 from source.media_handler import MediaHandler
+from source.reward import Reward
+# from source.media_handler import MediaHandler
 
 
 makeCarlaImportable()
@@ -23,7 +24,7 @@ class CarlaEnv(gym.Env):
     def __init__(self, name="NoNameWasGiven", carlaInstance=0):
 
         # Connect a client
-        self.client = carla.Client(*settings.CARLA_SIMS[carlaInstance][:2])
+        self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
         self.client.set_timeout(2.0)
         self.modelName = name
 
@@ -348,7 +349,7 @@ class CarlaEnv(gym.Env):
 
     # Returns true if the current max episode time has elapsed
     def _isEpisodeExpired(self):
-        return self.episodeTicks > settings.CARLA_TICKS_PER_EPISODE
+        return self.episodeTicks > settings.CARLA_TICKS_PER_EPISODE_STATIC
 
     # Returns true if all four wheels are not on the road
     def _isCarOnGrass(self):
