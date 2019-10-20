@@ -6,3 +6,14 @@ Kryds - Kryds_alt           : 1500
 Final1 - Final1_alt         : 1800
 ___________________________________
                             : 6300
+
+Changed settings based on trials on my own pc
+nsteps: 512->256
+lr-decay: False->True
+Policy: CnnLstm -> Cnn
+CarsPrSim: 64->21
+GraphicsDriver: OpenGL->Vulkan
+------
+Fixed Empty queue error (Integer overflow)
+------
+Base_Level_3_Modified_3 continuation from Base_Level_3_Modified_2 starting from save 26 saved at 5:12 am (Episode ~540)

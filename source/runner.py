@@ -21,7 +21,7 @@ from source.reward import Reward
 import numpy as np
 import tensorflow as tf
 from multiprocessing import Condition, Value
-from ctypes import c_int
+from ctypes import c_uint64
 
 
 class Runner:
@@ -35,8 +35,8 @@ class Runner:
         self.model = None
         self.maxRewardAchieved = float('-inf')
         self.lock = Condition(Lock())
-        self.frameNumber = Value(c_int, 0)
-        self.waiting_threads = Value(c_int, 0)
+        self.frameNumber = Value(c_uint64, 0)
+        self.waiting_threads = Value(c_uint64, 0)
         self.prev_episode = 0
         self.modelName = None
 
@@ -81,9 +81,9 @@ class Runner:
 
     def _setup(self):
         # Setup environment
-        startCarlaSims()
+        frame = startCarlaSims()
 
-        self.world_ticks = Value(c_int, 0)
+        self.frameNumber = Value(c_uint64, frame)
 
         # self.env = SubprocVecEnv([lambda i=i: gym.make('CarlaGym-v0', name=self.modelName, carlaInstance=i) for i in range(settings.CARLA_SIMS_NO)])
         self.env = SubprocVecEnv([self.make_env(i) for i in range(settings.CARS_PER_SIM)])
@@ -215,9 +215,9 @@ class Runner:
         tensorboard_log = "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
-        if settings.MODEL_NUMBER is not None and os.path.isfile(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}_best.pkl"):
+        if settings.MODEL_NUMBER is not None and os.path.isfile(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.pkl"):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}_best.pkl", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
+            model = self.rlModule.load(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.pkl", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
             print("done loading")
             self.modelNum += 1  # Avoid overwriting the loaded model
         # Create new model
@@ -236,17 +236,29 @@ class Runner:
 
         # TODO: If we want to evaluate on 'alt' maps, load them here!!!
 
-        obs = self.env.reset()
+        # obs = self.env.reset()
+        #
+        # state = None
+        # # When using VecEnv, done is a vector
+        # done = [False for _ in range(self.env.num_envs)]
+        # rewards_accum = np.zeros(settings.CARS_PER_SIM)
+        # for _ in range(settings.CARLA_TICKS_PER_EPISODE_STATIC):
+        #     # We need to pass the previous state and a mask for recurrent policies
+        #     # to reset lstm state when a new episode begin
+        #     action, state = self.model.predict(obs, state=state, mask=done, deterministic=False)
+        #     obs, rewards, done, _ = self.env.step(action)
+        #     rewards_accum += rewards
+
+        rewards_accum = np.zeros(settings.CARS_PER_SIM)
 
         state = None
-        # When using VecEnv, done is a vector
-        done = [False for _ in range(self.env.num_envs)]
-        rewards_accum = np.zeros(settings.CARS_PER_SIM)
-        for _ in range(settings.CARLA_TICKS_PER_EPISODE_STATIC):
-            # We need to pass the previous state and a mask for recurrent policies
-            # to reset lstm state when a new episode begin
+        done = False
+        obs = self.env.reset()
+
+        # Play some limited number of steps
+        for i in range(settings.CARLA_TICKS_PER_EPISODE_STATIC):
             action, state = self.model.predict(obs, state=state, mask=done, deterministic=True)
-            obs, rewards, done, _ = self.env.step(action)
+            obs, rewards, done, info = self.env.step(action)
             rewards_accum += rewards
 
         self.env.reset()

@@ -57,6 +57,7 @@ def startCarlaSims():
     print("Starting Carla...")
     killCarlaSims()
 
+    frame = 0
     for host in range(settings.CARLA_SIMS_NO):
         winX = (host*resWidth)+400
         winY = 950-resHeight
@@ -82,7 +83,9 @@ def startCarlaSims():
             clientSettings = client.get_world().get_settings()
             clientSettings.fixed_delta_seconds = settings.AGENT_TIME_STEP_SIZE
             clientSettings.synchronous_mode = True
-            client.get_world().apply_settings(clientSettings)
+            frame = client.get_world().apply_settings(clientSettings)
+
+    return frame
 
 
 def killCarlaSims():

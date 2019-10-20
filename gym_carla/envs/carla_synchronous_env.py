@@ -21,9 +21,9 @@ from PIL import Image
 class CarlaSyncEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
 
-    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, world_ticks=None, name="NoNameWasGiven", runner=None):
+    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, world_ticks=None, name="NoNameWasGiven", runner=None, serverIndex=0):
         # Connect a client
-        self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
+        self.client = carla.Client(*settings.CARLA_SIMS[serverIndex][:2])
         self.client.set_timeout(2.0)
         self.thread_count = thread_count
         self.tick_lock = lock
@@ -102,7 +102,7 @@ class CarlaSyncEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
-        if settings.AGENT_SYNCED: self.tick(30)
+        if settings.AGENT_SYNCED: self.tick(60)
 
     def close(self):
         self._resetActorList()
@@ -159,7 +159,7 @@ class CarlaSyncEnv(gym.Env):
             raise Exception("No such action type, change settings")
 
         if settings.AGENT_SYNCED:
-            self.tick(30)
+            self.tick(60)
 
         is_done = self._isDone()  # Must be calculated before rewards
 
@@ -275,10 +275,10 @@ class CarlaSyncEnv(gym.Env):
     def _waitForWorldToBeReady(self):
         self.tick_lock.acquire()
         while self._isWorldNotReady():
-            if settings.AGENT_SYNCED: self.tick_unsync(30)
+            if settings.AGENT_SYNCED: self.tick_unsync(60)
         self.tick_lock.release()
 
-        self.tick(30)
+        self.tick(60)
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
