@@ -16,6 +16,7 @@ class MediaHandler:
         self.episodeFrames = []
 
     def processImage(self, data):
+        self.carlaEnv.logSensor("processImage")
         cc = carla.ColorConverter.CityScapesPalette
         data.convert(cc)
         # Get image, reshape and remove alpha channel

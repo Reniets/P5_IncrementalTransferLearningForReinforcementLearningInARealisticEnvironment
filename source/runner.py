@@ -177,7 +177,7 @@ class Runner:
         # Print stats every 100 calls
         if self.nEpisodes % settings.MODEL_EXPORT_RATE == 0:
             print(f"Saving new model: step {self.nEpisodes}")
-            _locals['self'].save(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.pkl")
+            _locals['self'].save(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}")
             self.modelNum += 1
 
     def _exportBestModel(self, runner_locals, _locals):
@@ -188,7 +188,7 @@ class Runner:
             self.maxRewardAchieved = mean
             if self.nEpisodes > 10:
                 print(f"Saving best model: step {self.nEpisodes} reward: {mean}")
-                _locals['self'].save(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}_best.pkl")
+                _locals['self'].save(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}_best")
 
     def _storeTensorBoardData(self, _locals):
         n_episodes = self._getEpisodeCount()
@@ -215,9 +215,9 @@ class Runner:
         tensorboard_log = "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None
 
         # Load from previous model:
-        if settings.MODEL_NUMBER is not None and os.path.isfile(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.pkl"):
+        if settings.MODEL_NUMBER is not None and os.path.isfile(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip"):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.pkl", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
+            model = self.rlModule.load(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
             print("done loading")
             self.modelNum += 1  # Avoid overwriting the loaded model
         # Create new model

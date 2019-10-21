@@ -32,7 +32,7 @@ VIDEO_ALWAYS_ON = False  # Bool
 MODEL_RL_MODULE = "PPO2"
 MODEL_MINI_BATCHES = 4  # Cars per sim must be multiple of this
 MODEL_POLICY = "CnnPolicy"
-MODEL_NUMBER = 26  # int|None. If int carla will try to load model, if none it will never even try!
+MODEL_NUMBER = None  # int|None. If int carla will try to load model, if none it will never even try!
 MODEL_USE_TENSORBOARD_LOG = True  # Bool
 MODEL_EXPORT_RATE = 20 if MODEL_RL_MODULE is "PPO2" else 2000  # Callback steps (Dependent on n_episodes)
 MODEL_N_STEPS = 256
@@ -44,3 +44,5 @@ MODEL_MAX_EPISODES = 600
 MODEL_CLIP_RANGE = 0.2
 MODEL_CLIP_RANGE_MIN = 0.2
 MODEL_NAME = "DefaultName"
+
+LOG_SENSOR = True

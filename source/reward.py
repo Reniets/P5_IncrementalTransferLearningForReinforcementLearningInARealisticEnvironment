@@ -11,7 +11,7 @@ class Reward:
         reward += self._rewardAvoidGrass()          * 2.00  # Penalty (Points pr. tire on grass pr. tick)
         reward += self._rewardTurnSensitivity()     * 0.15  # Penalty (Points pr. degree pr. tire on road pr. tick) (Initial value: 0.055)
         reward += self._dontStandStill()            * 4.00  # Penalty (Points pr. step below a speed limit)
-        reward += self._followSpline()              * 4.00  # Reward (points pr. meter driven following spline pr. tire on road pr. tick)
+        reward += self._followSpline()              * 4.00  # Reward (points pr. meter driven following spline)
         # reward += self._rewardDriveShortOnGrass()   * 1.50  # Penalty
         # reward += self._rewardReturnToRoad()        * 1.00  # Reward / Penalty
         # reward += self._rewardStayOnRoad()          * 0.05  # Reward

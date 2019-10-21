@@ -14,6 +14,7 @@ Policy: CnnLstm -> Cnn
 CarsPrSim: 64->21
 GraphicsDriver: OpenGL->Vulkan
 ------
-Fixed Empty queue error (Integer overflow)
+ (Ep. 648, 295)Empty queue error (Not Integer overflow)
 ------
-Base_Level_3_Modified_3 continuation from Base_Level_3_Modified_2 starting from save 26 saved at 5:12 am (Episode ~540)
+Base_Level_3_Modified_5 continuation from Base_Level_3_Modified_3 starting from save 22 saved at 16:13 (Episode ~648)
+- Needs to do 252 more episodes
