@@ -64,22 +64,6 @@ class Runner:
 
         killCarlaSims()
 
-    def evaluate(self):
-        self._setup()
-        self.model = self._getModel(strictLoad=True)  # Load the trained agent
-
-        # Evaluate agent in environment
-        obs = self.env.reset()
-
-        state = None
-        # When using VecEnv, done is a vector
-        done = [False for _ in range(self.env.num_envs)]
-        for _ in range(100000):
-            # We need to pass the previous state and a mask for recurrent policies
-            # to reset lstm state when a new episode begin
-            action, state = self.model.predict(obs, state=state, mask=done, deterministic=True)
-            obs, reward, done, _ = self.env.step(action)
-
     def _setup(self):
         # Setup environment
         frame = startCarlaSims()
@@ -117,20 +101,63 @@ class Runner:
         return _init
 
     def _getModel(self, strictLoad=False):
-        tensorboard_log = "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None
-        modelName = f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
-        # Load from previous model:
-        if settings.MODEL_NUMBER is not None and os.path.isfile(modelName):
+        # Get model name
+        modelName = self._getModelName()
+
+        # Boolean features to determine if a model should be loaded
+        model_number_is_set = settings.MODEL_NUMBER is not None
+        model_exist = os.path.isfile(modelName)
+        not_imitation_transfer = settings.TRANSFER_AGENT != TransferType.IMITATION.value
+
+        should_load_model = model_number_is_set and model_exist and not_imitation_transfer
+
+        # Create model
+        if should_load_model:
             print("LOAD MODEL")
-            model = self.rlModule.load(modelName, env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
+            model = self.rlModule.load(modelName, **self._getModelKwags(False))
             print(f"Done loading: {modelName}")
-            self.modelNum += 1  # Avoid overwriting the loaded model
-        # Create new model
+
         elif strictLoad:
             raise Exception(f"Expected strict load but no model found: {self.modelName}_{self.modelNum}. "
                             f"Try changing model name and number in settings or disable strictLoad")
         else:
             print("NEW MODEL")
-            model = self.rlModule(policy=self.policy, env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
+            model = self.rlModule(**self._getModelKwags(True))
 
         return model
+
+    def _getModelKwags(self, new_model: bool):
+        kwags = {
+            "env": self.env,
+            "tensorboard_log": "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None,
+            "n_steps": settings.MODEL_N_STEPS,
+            "nminibatches": settings.MODEL_MINI_BATCHES,
+            "ent_coef": settings.MODEL_ENT_COEF,
+            "learning_rate": lambda frac: settings.MODEL_LEARNING_RATE,
+            "cliprange": lambda frac: settings.MODEL_CLIP_RANGE,
+            "cliprange_vf": lambda frac: settings.MODEL_CLIP_RANGE
+        }
+
+        if new_model:
+            kwags.update({"policy": self.policy})
+
+        return kwags
+
+    def _getModelName(self):
+        return f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
+
+    def evaluate(self):
+        self._setup()
+        self.model = self._getModel(strictLoad=True)  # Load the trained agent
+
+        # Evaluate agent in environment
+        obs = self.env.reset()
+
+        state = None
+        # When using VecEnv, done is a vector
+        done = [False for _ in range(self.env.num_envs)]
+        for _ in range(100000):
+            # We need to pass the previous state and a mask for recurrent policies
+            # to reset lstm state when a new episode begin
+            action, state = self.model.predict(obs, state=state, mask=done, deterministic=True)
+            obs, reward, done, _ = self.env.step(action)
