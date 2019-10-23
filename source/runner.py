@@ -115,7 +115,7 @@ class Runner:
         if should_load_model:
             print("LOAD MODEL")
             model = self.rlModule.load(modelName, **self._getModelKwags(False))
-            print(f"Done loading: {modelName}")
+            print(f"DONE LOADING: {modelName}")
 
         elif strictLoad:
             raise Exception(f"Expected strict load but no model found: {self.modelName}_{self.modelNum}. "
@@ -123,6 +123,7 @@ class Runner:
         else:
             print("NEW MODEL")
             model = self.rlModule(**self._getModelKwags(True))
+            print("DONE CREATING NEW MODEL")
 
         return model
 
