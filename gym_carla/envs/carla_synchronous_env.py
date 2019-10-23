@@ -112,7 +112,7 @@ class CarlaSyncEnv(gym.Env):
     def reset(self):
         self.episodeNr += 1  # Count episodes TODO WARNING: be careful using this as it also counts validation episodes
 
-        self.logSensor("reset()")
+        #self.logSensor("reset()")
 
         # Print episode and reward for that episode
         if self.carlaInstance == 0 and self.car_last_episode_time is not None:
@@ -178,13 +178,13 @@ class CarlaSyncEnv(gym.Env):
         return self.imgFrame, reward, is_done, {}  # extra
 
     def synchronized_world_tick(self):
-        self.logSensor(f"synchronized_world_tick pre [{self.frameNumber.value}]")
+        #self.logSensor(f"synchronized_world_tick pre [{self.frameNumber.value}]")
         self.tick_lock.acquire()
         self.waiting_threads.value += 1
         if self.waiting_threads.value < self.thread_count:
-            self.logSensor("Waiting")
+            #self.logSensor("Waiting")
             self.tick_lock.wait()
-            self.logSensor("Done waiting")
+            #self.logSensor("Done waiting")
             # Wait until someone notifies that the world has ticked
         else:
             if self.world_ticks is not None:
@@ -196,54 +196,54 @@ class CarlaSyncEnv(gym.Env):
         self.tick_lock.release()
 
     def tick(self, timeout):
-        self.logSensor(f"Tick pre [{self.frameNumber.value}]")
+        #self.logSensor(f"Tick pre [{self.frameNumber.value}]")
         self.synchronized_world_tick()
-        self.logSensor(f"Tick post [{self.frameNumber.value}]")
+        #self.logSensor(f"Tick post [{self.frameNumber.value}]")
 
         data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
-        self.logSensor(f"-> Data: {data}")
+        #self.logSensor(f"-> Data: {data}")
 
         # assert all(x.frame == self.frameNumber.value for x in data)
         return data
 
     def tick_unsync(self, timeout):
-        self.logSensor(f"Tick_unsync pre [{self.frameNumber.value}]")
+        #self.logSensor(f"Tick_unsync pre [{self.frameNumber.value}]")
         old_frame = self.world.tick()
         self.frameNumber.value = self.world.get_snapshot().timestamp.frame
-        self.logSensor(f"Tick_unsync post [{self.frameNumber.value}]")
-        self.logSensor(f"old_frame_metod[{old_frame} vs new_frame_method{self.frameNumber.value}] - {'EXCEPTION' if old_frame != self.frameNumber.value else ''}")
+        #self.logSensor(f"Tick_unsync post [{self.frameNumber.value}]")
+        #self.logSensor(f"old_frame_metod[{old_frame} vs new_frame_method{self.frameNumber.value}] - {'EXCEPTION' if old_frame != self.frameNumber.value else ''}")
 
         data = [self._retrieve_data(queueTuple, timeout) for queueTuple in self.queues]
-        self.logSensor(f"-> Data: {data}")
+        #self.logSensor(f"-> Data: {data}")
 
         return data
 
     def _makeQueue(self, registerEvent, processData):
-        self.logSensor(f"MakeQueue()")
+        #self.logSensor(f"MakeQueue()")
         q = queue.Queue()
         registerEvent(lambda item, block=True, timeout=None: self._putData(q, item, block=block, timeout=timeout))
         self.queues.append((q, processData))
 
     def _putData(self, q, item, block, timeout):
-        self.logSensor(f"Put item({item}) in queue({q})")
+        #self.logSensor(f"Put item({item.frame}) in queue({q})")
         q.put(item, block=block, timeout=timeout)
 
     def _retrieve_data(self, queueTuple, timeout):
-        self.logSensor(f"Retrive_data(): ")
+        #self.logSensor(f"Retrive_data(): ")
 
         while True:
             try:
                 data = queueTuple[0].get(block=True, timeout=timeout)
-                self.logSensor(f"-> Data: {data}")
+                #self.logSensor(f"-> Data: {data}")
             except queue.Empty as e:
-                self.logSensor("Retrive_data() Queue empty - EXCEPTION")
+                #self.logSensor("Retrive_data() Queue empty - EXCEPTION")
                 return None
             except Exception as e:
-                self.logSensor("Retrive_data() other - EXCEPTION")
+                #self.logSensor("Retrive_data() other - EXCEPTION")
                 return None
 
             if data.frame == self.frameNumber.value:
-                self.logSensor(f"--> Same frame number")
+                #self.logSensor(f"--> Same frame number")
                 dataProcessFunction = queueTuple[1]
                 dataProcessFunction(data)  # Process data
                 return data
@@ -332,7 +332,7 @@ class CarlaSyncEnv(gym.Env):
 
     # Waits until the world is ready for training
     def _waitForWorldToBeReady(self):
-        self.logSensor("_waitForWorldToBeReady()")
+        #self.logSensor("_waitForWorldToBeReady()")
 
         self.tick_lock.acquire()
         while self._isWorldNotReady():
@@ -342,7 +342,7 @@ class CarlaSyncEnv(gym.Env):
 
         self.tick(10)
 
-        self.logSensor("->world is ready!")
+        #self.logSensor("->world is ready!")
 
     # Returns true if the world is not yet ready for training
     def _isWorldNotReady(self):
@@ -519,12 +519,12 @@ class CarlaSyncEnv(gym.Env):
         pass
 
     def _grass_data(self, event):
-        self.logSensor("_grass_data()")
+        #self.logSensor("_grass_data()")
         self.wheelsOnGrass = event[0] + event[1] + event[2] + event[3]
         # print(f"({event[0]},{event[1]},{event[2]},{event[3]})")
 
     def _spline_data(self, event):
-        self.logSensor("_spline_data()")
+        #self.logSensor("_spline_data()")
         self.distanceOnSpline = event[0]
         self.splineMaxDistance = event[1]
 

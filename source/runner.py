@@ -213,12 +213,12 @@ class Runner:
 
     def _getModel(self, strictLoad=False):
         tensorboard_log = "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None
-
+        modelName = f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip" if not settings.LOAD_TRANSFER_AGENT else f"TransferAgentLogs/{self.modelName}.zip"
         # Load from previous model:
-        if settings.MODEL_NUMBER is not None and os.path.isfile(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip"):
+        if settings.MODEL_NUMBER is not None and os.path.isfile(modelName):
             print("LOAD MODEL")
-            model = self.rlModule.load(f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip", env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
-            print("done loading")
+            model = self.rlModule.load(modelName, env=self.env, tensorboard_log=tensorboard_log, n_steps=settings.MODEL_N_STEPS, nminibatches=settings.MODEL_MINI_BATCHES, ent_coef=settings.MODEL_ENT_COEF, learning_rate=lambda frac: settings.MODEL_LEARNING_RATE, cliprange=lambda frac: settings.MODEL_CLIP_RANGE, cliprange_vf=lambda frac: settings.MODEL_CLIP_RANGE)
+            print(f"Done loading: {modelName}")
             self.modelNum += 1  # Avoid overwriting the loaded model
         # Create new model
         elif strictLoad:

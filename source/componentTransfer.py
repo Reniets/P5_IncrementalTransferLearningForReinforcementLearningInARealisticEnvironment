@@ -19,7 +19,7 @@ class ComponentTransfer:
         # Setup
         self.fromAgentSavePath = fromAgentSavePath
         self.toAgentSavePath = toAgentSavePath
-        self.transferAgentSavePath = 'Transfer_FromLevel_' + fromAgentSavePath.split('_')[2] + '_ToLevel_' + toAgentSavePath.split('_')[2]
+        self.transferAgentSavePath = 'TransferAgentLogs/Transfer_FromLevel_' + fromAgentSavePath.split('_')[2] + '_ToLevel_' + toAgentSavePath.split('_')[2]
         self.parameterNamesToTransfer = self._getParametersToTransfer(parameterIndicesToTransfer)
 
         self._loadParametersToTransfer()
@@ -35,6 +35,7 @@ class ComponentTransfer:
 
         # Clean extracted folder
         shutil.rmtree('ToAgentExtracted')
+        os.remove('parameters')
 
     def _getParametersToTransfer(self, parameterIndicesToTransfer):
         parameterList = [
@@ -58,10 +59,9 @@ class ComponentTransfer:
 
     def _loadParametersToTransfer(self):
         with zipfile.ZipFile(self.fromAgentSavePath) as agentFromZip:
-            with zipfile.ZipFile(agentFromZip.open('parameters')) as parametersZip:
-                for parameter in self.parameterNamesToTransfer:
-                    with parametersZip.open(parameter + '.npy') as parameterNpy:
-                        self.parametersToTransfer[parameter] = np.load(parameterNpy)
+            agentFromZip.extract('parameters')
+
+        self.parametersToTransfer = np.load('parameters')
 
     def _toAgentExtract(self):
         with zipfile.ZipFile(self.toAgentSavePath) as agentToZip:
