@@ -132,7 +132,7 @@ class Callback:
             rewards_accum += rewards
 
         self.runner.env.reset()
-        print("Done evaluating")
         mean = rewards_accum.mean()
+        print(f"Done evaluating: {mean}")
         summary = tf.Summary(value=[tf.Summary.Value(tag='EvaluationMean', simple_value=mean)])
         _locals['writer'].add_summary(summary, self.nEpisodes)
