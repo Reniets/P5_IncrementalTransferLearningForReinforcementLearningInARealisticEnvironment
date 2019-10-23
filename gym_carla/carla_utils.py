@@ -37,6 +37,13 @@ class ActionType(Enum):
     MULTI_DISCRETE = 1
     BOX = 2
 
+
+class TransferType(Enum):
+    NONE = 0        # Normal, no transfer at all
+    WEIGHTS = 1     # Load an agent with prelearned weights, and continue training on that
+    IMITATION = 2   # Use Imitation in times of uncertainty
+
+
 # Functions
 def makeCarlaImportable():
     try:
