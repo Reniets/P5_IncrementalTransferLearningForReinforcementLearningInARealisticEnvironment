@@ -40,6 +40,8 @@ class Runner:
         self.waiting_threads = Value(c_uint64, 0)
         self.modelName = None
         self.callback = Callback(self)
+        self.seenObservations = []
+        self.maxStateCounter = 0
 
         self.parDict = {
 
@@ -127,7 +129,19 @@ class Runner:
 
         return model
 
-    def _getModelKwags(self, new_model: bool):
+    def _getModelImitation(self):
+        model_name = self._getModelName()
+
+        if os.path.isfile(model_name):
+            print(F"LOAD DIRECTOR: {model_name}")
+            return self.rlModule.load(model_name, **self._getModelKwags(False, dismiss_director=True))
+
+        else:
+            raise Exception(f"Expected imitation agent, but no model found: {model_name}. "
+                            f"Try changing model name and number in settings.")
+
+    def _getModelKwags(self, new_model: bool, dismiss_director=False):
+        # Always
         kwags = {
             "env": self.env,
             "tensorboard_log": "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None,
@@ -139,13 +153,84 @@ class Runner:
             "cliprange_vf": lambda frac: settings.MODEL_CLIP_RANGE
         }
 
+        # Only new models
         if new_model:
             kwags.update({"policy": self.policy})
 
+        # Only imitation agents
+        if settings.TRANSFER_AGENT == TransferType.IMITATION.value and not dismiss_director:
+            kwags.update({
+                "polling_rate": lambda: settings.TRANSFER_POLLING_RATE_START,
+                "uncertainty": lambda obs: self.calculateUncertainty(obs),
+                "director": self._getModelImitation(),
+            })
+
         return kwags
 
+    def calculateUncertainty(self, obs):
+        uncertainties = []
+
+        # Convert observations to expected category format
+        obs = self._convertObservationsToCategoryFormat(obs)
+
+        # Get uncertainties
+        for observation in obs:
+            uncertainties.append(self._getObservationUncertainty(observation))
+
+        return uncertainties
+
+    def _convertObservationsToCategoryFormat(self, obs):
+        conv_obs = []
+
+        for ob in obs:
+            conv_obs.append(self._convertObservationToCategoryFormat(ob))
+
+        return conv_obs
+
+    def _convertObservationToCategoryFormat(self, observation):
+        return [1 for _ in range(settings.CARLA_IMG_WIDTH * settings.CARLA_IMG_HEIGHT)]  # TODO: UPDATE
+
+    def _getObservationUncertainty(self, observation):
+        state_counter = self._getStateCounterAndIncrement(observation)
+
+        if state_counter == 0:
+            print(f"NEW STATE!! - TOTAL STATES: {len(self.seenObservations)}")
+            pass
+
+        if self.maxStateCounter == 0:
+            return 1
+        else:
+            return state_counter / self.maxStateCounter
+
+    def _getStateCounterAndIncrement(self, new_ob):
+        # Loop all seen images, and try to locate an image that are close to the current one
+        for index, ob_tuple in enumerate(self.seenObservations):
+            seen_ob = ob_tuple[1]
+            equal_pixels = self._getImageEqualness(seen_ob, new_ob)
+
+            if equal_pixels >= settings.TRANSFER_IMITATION_THRESHOLD:
+                self._incrementStateCounter(index, new_ob)
+                return ob_tuple[0]
+
+        # We have never seen anything like this new observation, so add it to the list,
+        # and return 0 since it's the first time we see it
+        self.seenObservations.append((1, new_ob))
+        return 0
+
+    # Increments the counter, and returns the counter pre increment
+    def _incrementStateCounter(self, seen_ob_index, seen_ob):
+        ob_tuple = self.seenObservations[seen_ob_index]                     # Get the data tuple
+        seen_counter = ob_tuple[0]                                          # Get the seen counter
+        self.seenObservations[seen_ob_index] = (seen_counter + 1, seen_ob)  # Increment the counter
+
+        if self.maxStateCounter < seen_counter + 1:
+            self.maxStateCounter = seen_counter + 1
+
+    def _getImageEqualness(self, img_a, img_b):
+        return np.sum(np.equal(img_a, img_b))
+
     def _getModelName(self):
-        return f"ExperimentLogsFinal/{self.modelName}_{self.modelNum}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
+        return f"{self.modelName}_{self.modelNum}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
 
     def evaluate(self):
         self._setup()
@@ -160,5 +245,6 @@ class Runner:
         for _ in range(100000):
             # We need to pass the previous state and a mask for recurrent policies
             # to reset lstm state when a new episode begin
+
             action, state = self.model.predict(obs, state=state, mask=done, deterministic=True)
             obs, reward, done, _ = self.env.step(action)

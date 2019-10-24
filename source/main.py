@@ -24,7 +24,7 @@ maps = [
 runner = Runner()
 map = maps[i]
 
-settings.MODEL_NAME = f"Transfer_FromLevel_1_ToLevel_2"
+settings.MODEL_NAME = f"Base_Level_2_Modified"
 settings.CARLA_SIMS[0][2] = map
 total_timesteps = settings.CARLA_TICKS_PER_EPISODE_STATIC * settings.EPISODES_PER_SESSION * (i+1) * settings.CARS_PER_SIM
 runner.train(total_timesteps=total_timesteps)  # Train a model

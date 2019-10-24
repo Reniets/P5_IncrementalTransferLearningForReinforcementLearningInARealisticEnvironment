@@ -5,6 +5,10 @@ import os
 from collections import OrderedDict
 import io
 import numpy as np
+import sys
+from os import path
+sys.path.append(path.abspath('../../stable-baselines'))
+from stable_baselines.common.save_util import params_to_bytes, data_to_json
 
 
 class ComponentTransfer:
@@ -75,44 +79,12 @@ class ComponentTransfer:
 
         return toAgentParams
 
-    def _paramsToBytes(self, params):
-        # Create byte-buffer and save params with
-        # savez function, and return the bytes.
-        byteFile = io.BytesIO()
-        np.savez(byteFile, **params)
-        serializedParams = byteFile.getvalue()
-        return serializedParams
-
-    def _isJsonSerializable(self, item):
-        # Try with try-except struct.
-        jsonSerializable = True
-        try:
-            _ = json.dumps(item)
-        except TypeError:
-            jsonSerializable = False
-        return jsonSerializable
-
-    def _dataToJson(self, data):
-        # First, check what elements can not be JSONfied,
-        # and turn them into byte-strings
-        serializableData = {}
-        for dataKey, dataItem in data.items():
-            # See if object is JSON serializable
-            if self._isJsonSerializable(dataItem):
-                # All good, store as it is
-                serializableData[dataKey] = dataItem
-            else:
-                raise Exception("Error")
-
-        jsonString = json.dumps(serializableData, indent=4)
-        return jsonString
-
     def _serializeAndExportTransferAgent(self, toAgentParams):
         with open('ToAgentExtracted/data') as jsonFile:
             data = json.load(jsonFile)
 
-        serializedData = self._dataToJson(data)
-        serializedParams = self._paramsToBytes(toAgentParams)
+        serializedData = data_to_json(data)
+        serializedParams = params_to_bytes(toAgentParams)
 
         serializedParamList = json.dumps(
             list(toAgentParams.keys()),
