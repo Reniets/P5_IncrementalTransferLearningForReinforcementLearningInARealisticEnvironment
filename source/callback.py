@@ -16,6 +16,7 @@ class Callback:
 
         self._updateLearningRate(_locals)
         self._updateClipRange(_locals)
+        self._updatePollingRate(_locals)
         self._storeTensorBoardData(_locals)
         self._exportBestModel(runner_locals, _locals)
         self._printCallbackStats(_locals)
@@ -63,6 +64,10 @@ class Callback:
         new_learning_rate = self._calcluateNewLearningRate_Exponential()
         _locals['self'].learning_rate = lambda frac: new_learning_rate
 
+    def _updatePollingRate(self, _locals):
+        new_polling_rate = self._calculateNewPollingRate_Linear()
+        _locals['self'].polling_rate = lambda: new_polling_rate
+
     def _updateClipRange(self, _locals):
         new_clip_range = self._calculateNewClipRange_Linear()
         _locals['self'].cliprange = lambda frac: new_clip_range
@@ -75,6 +80,13 @@ class Callback:
         newClip = max(settings.MODEL_CLIP_RANGE_MIN + (clip_diff*scale), 0)
 
         return newClip
+
+    def _calculateNewPollingRate_Linear(self):
+        scale = self._getEpisodeScaleTowardsZero()
+        poll_diff = settings.TRANSFER_POLLING_RATE_START - settings.TRANSFER_POLLING_RATE_MIN
+        newPoll = max(settings.TRANSFER_POLLING_RATE_MIN + (poll_diff*scale), 0)
+
+        return newPoll
 
     def _calcluateNewLearningRate_Exponential(self):
         n_episodes = self._getEpisodeCount()
