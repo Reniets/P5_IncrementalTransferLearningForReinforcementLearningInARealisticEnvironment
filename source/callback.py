@@ -139,7 +139,7 @@ class Callback:
 
         # Play some limited number of steps
         for i in range(settings.CARLA_TICKS_PER_EPISODE_STATIC):
-            action, state = self.runner.model.predict(obs, state=state, mask=done, deterministic=False)
+            action, state = self.runner.model.predict(obs, state=state, mask=done, deterministic=True)
             obs, rewards, done, info = self.runner.env.step(action)
             rewards_accum += rewards
 

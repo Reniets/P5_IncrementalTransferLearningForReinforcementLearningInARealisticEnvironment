@@ -19,11 +19,11 @@ class ComponentTransfer:
         self.parameterNamesToTransfer = None
         self.parametersToTransfer = {}
 
-    def transfer(self, fromAgentSavePath, toAgentSavePath, parameterIndicesToTransfer):
+    def transfer(self, fromAgentSavePath, toAgentSavePath, toLevel,  parameterIndicesToTransfer):
         # Setup
         self.fromAgentSavePath = fromAgentSavePath
         self.toAgentSavePath = toAgentSavePath
-        self.transferAgentSavePath = 'TransferAgentLogs/Transfer_FromLevel_' + fromAgentSavePath.split('_')[2] + '_ToLevel_' + toAgentSavePath.split('_')[2]
+        self.transferAgentSavePath = 'TransferAgentLogs/Transfer_FromLevel_' + fromAgentSavePath.split('_')[2] + '_ToLevel_' + str(toLevel)
         self.parameterNamesToTransfer = self._getParametersToTransfer(parameterIndicesToTransfer)
 
         self._loadParametersToTransfer()
