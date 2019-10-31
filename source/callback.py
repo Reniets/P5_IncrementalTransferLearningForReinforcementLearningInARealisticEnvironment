@@ -29,6 +29,31 @@ class Callback:
     def _getEpisodeCount(self):
         return len(self.runner.env.get_attr('episode_rewards', 0)[0])
 
+    def _getAllCarRewards(self):
+        all_rewards = self.runner.env.get_attr('episode_rewards', [i for i in range(settings.CARS_PER_SIM)])
+        values = [array[-1] for array in all_rewards]
+        return values
+
+    def _getAllCarlaEnvironments(self):
+        return self.runner.env.get_attr('env', [i for i in range(settings.CARS_PER_SIM)])
+
+    def _maxCarEnvironment(self):
+        return self._getAllCarlaEnvironments()[np.argmax(self._getAllCarRewards())]
+
+    def _minCarEnvironment(self):
+        return self._getAllCarlaEnvironments()[np.argmin(self._getAllCarRewards())]
+
+    def _medianCarEnvironment(self):
+        rewards = self._getAllCarRewards()
+        median_index = np.argsort(rewards)[len(rewards) // 2]
+        return self._getAllCarlaEnvironments()[median_index]
+
+    def _exportGpsData(self, runner_locals, _locals):
+        carla_environment = self._maxCarEnvironment()
+        gps = carla_environment.gps
+
+        gps.export(f"GpsData/{self.runner.modelName}_{self.runner.modelNum}.csv")
+
     def _exportBestModel(self, runner_locals, _locals):
         # info = _locals["ep_infos"]
         # print(f"{self.nSteps}: {info}")
@@ -45,8 +70,7 @@ class Callback:
         if n_episodes > self.prev_episode:
             self.prev_episode = n_episodes
 
-            allRewards = self.runner.env.get_attr('episode_rewards', [i for i in range(settings.CARS_PER_SIM)])
-            values = [array[-1] for array in allRewards]
+            values = self._getAllCarRewards()
 
             median = np.median(values)
             summary = tf.Summary(value=[tf.Summary.Value(tag='episodeRewardMedian', simple_value=median)])
