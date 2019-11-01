@@ -6,7 +6,14 @@ class GpsImage:
     # Reference point structure: tuple(np(img_cords), np(env_cords)).
     # We expect there to be two img cords and two related env cords
     def __init__(self, img_path, reference_points, mode=cv2.IMREAD_COLOR):
-        self.track_color = (255, 25, 224)  # BGR
+        self.track_color = (0, 95, 255)     # BGR
+        self.start_color = (150, 0, 0)    # BGR
+        self.end_color   = (0, 0, 255)      # BGR
+
+        self.track_width = 3                # Pixels
+        self.start_width = 15               # Pixels
+        self.end_width   = 15               # Pixels
+
         self.image = cv2.imread(img_path, mode)
 
         self.img_base = reference_points[0][0]
@@ -48,9 +55,15 @@ class GpsImage:
             if last_point is None:
                 last_point = img_coord
 
-            cv2.line(image, last_point, img_coord, self.track_color, 3)
+            line_width = self.start_width if last_point == img_coord else self.track_width
+            track_color = self.start_color if last_point == img_coord else self.track_color
+
+            cv2.line(image, last_point, img_coord, track_color, line_width)
 
             last_point = img_coord
+
+        # End point circle
+        cv2.line(image, last_point, last_point, self.end_color, self.end_width)
 
         return image
 
