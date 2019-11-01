@@ -107,6 +107,21 @@ class CarlaSyncEnv(gym.Env):
 
         if settings.AGENT_SYNCED: self.tick(10)
 
+    def prepare_for_world_change(self):
+        self.actorList = []
+        self.queues = []
+        self._resetInstanceVariables()
+        self.client = None
+        self.world = None
+        self.blueprintLibrary = None
+
+    def reset_world(self):
+        self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
+        self.client.set_timeout(2.0)
+        self.world = self.client.get_world()
+        self.blueprintLibrary = self.world.get_blueprint_library()
+
+
     def close(self):
         self._resetActorList()
 

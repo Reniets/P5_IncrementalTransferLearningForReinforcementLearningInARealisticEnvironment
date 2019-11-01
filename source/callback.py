@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import os
+from gym_carla.carla_utils import changeMap
 
 
 class Callback:
@@ -190,6 +191,12 @@ class Callback:
         # Evaluate agent in environment
 
         # TODO: If we want to evaluate on 'alt' maps, load them here!!!
+        old_map = settings.CARLA_SIMS[0][2]
+        load_new_map = False #old_map in settings.CARLA_EVALUATION_MAPS
+        if load_new_map:
+            self.runner.env.env_method('prepare_for_world_change', indices=[i for i in range(settings.CARS_PER_SIM)])
+            changeMap(settings.CARLA_EVALUATION_MAPS[old_map])
+            self.runner.env.env_method('reset_actors', indices=[i for i in range(settings.CARS_PER_SIM)])
 
         # obs = self.runner.env.reset()
         #
@@ -215,6 +222,11 @@ class Callback:
             action, state = self.runner.model.predict(obs, state=state, mask=done, deterministic=True)
             obs, rewards, done, info = self.runner.env.step(action)
             rewards_accum += rewards
+
+        if load_new_map:
+            self.runner.env.env_method('prepare_for_world_change', indices=[i for i in range(settings.CARS_PER_SIM)])
+            changeMap(old_map)
+            self.runner.env.env_method('reset_actors', indices=[i for i in range(settings.CARS_PER_SIM)])
 
         self.runner.env.reset()
         mean = rewards_accum.mean()

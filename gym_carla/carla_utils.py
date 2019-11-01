@@ -72,28 +72,31 @@ def startCarlaSims():
         time.sleep(4)  # If DISPLAY is off, sleep longer
 
     for host in range(settings.CARLA_SIMS_NO):
-        client = carla.Client(*settings.CARLA_SIMS[host][:2])
-        client.set_timeout(5.0)
-        curMap = client.get_world().get_map().name
-        mapChoice = settings.CARLA_SIMS[host][2]
-
-        # Ensure that map even needs to be loaded
-        if curMap != mapChoice:
-            carla.Client(*settings.CARLA_SIMS[host][:2]).load_world(mapChoice)  # Load chosen map
-
-            # Wait for the map to be loaded in
-            while carla.Client(*settings.CARLA_SIMS[host][:2]).get_world().get_map().name != mapChoice:
-                print('Loop')
-                time.sleep(0.05)
-
-        if settings.AGENT_SYNCED:
-            clientSettings = client.get_world().get_settings()
-            clientSettings.fixed_delta_seconds = settings.AGENT_TIME_STEP_SIZE
-            clientSettings.synchronous_mode = True
-            frame = client.get_world().apply_settings(clientSettings)
+        frame = changeMap(settings.CARLA_SIMS[host][2], host)
 
     return frame
 
+
+def changeMap(mapChoice, host=0):
+    client = carla.Client(*settings.CARLA_SIMS[host][:2])
+    client.set_timeout(5.0)
+    curMap = client.get_world().get_map().name
+
+    # Ensure that map even needs to be loaded
+    if curMap != mapChoice:
+        carla.Client(*settings.CARLA_SIMS[host][:2]).load_world(mapChoice)  # Load chosen map
+
+        # Wait for the map to be loaded in
+        while carla.Client(*settings.CARLA_SIMS[host][:2]).get_world().get_map().name != mapChoice:
+            print('Loop')
+            time.sleep(0.05)
+
+    if settings.AGENT_SYNCED:
+        clientSettings = client.get_world().get_settings()
+        clientSettings.fixed_delta_seconds = settings.AGENT_TIME_STEP_SIZE
+        clientSettings.synchronous_mode = True
+        frame = client.get_world().apply_settings(clientSettings)
+    return frame
 
 def killCarlaSims():
     # Iterate processes and terminate carla ones

@@ -12,15 +12,17 @@ CARLA_SECONDS_MODE_LINEAR = False
 CARLA_SECONDS_PER_EPISODE_LINEAR_MIN = 15
 CARLA_SECONDS_PER_EPISODE_LINEAR_MAX = 45
 CARLA_SECONDS_PER_EPISODE_EPISODE_RANGE = 300
-CARLA_SECONDS_PER_EPISODE_STATIC = 35
+CARLA_SECONDS_PER_EPISODE_STATIC = 5
 CARLA_TICKS_PER_EPISODE_STATIC = int(CARLA_SECONDS_PER_EPISODE_STATIC * (1 / AGENT_TIME_STEP_SIZE))  # Steps
 CARLA_IMG_WIDTH = 50  # Pixels
 CARLA_IMG_HEIGHT = 50  # Pixels
 CARLA_IMG_MAX_SPEED = 80  # km/h
-CARLA_EVALUATION_RATE = 5  # Number of training episodes before a validation episode
+CARLA_EVALUATION_RATE = 1  # Number of training episodes before a validation episode
+CARLA_EVALUATION_MAPS = {'Square': 'Square_alt', 'Kryds':'Kryds_alt', 'Final1':'Final1_alt',
+                         'Niveau3':'Niveau3_alt', 'Curve_Slim':'Curve_Slim_alt', 'Curve_Wide':'Curve_Wide_alt'}
 
 USE_RANDOM_SPAWN_POINTS = True
-EPISODES_PER_SESSION = 300
+EPISODES_PER_SESSION = 5
 
 # Video settings
 VIDEO_EXPORT_RATE = 1  # Episodes
