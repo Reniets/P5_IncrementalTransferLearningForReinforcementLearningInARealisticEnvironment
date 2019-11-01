@@ -230,7 +230,7 @@ class Runner:
         return np.sum(np.equal(img_a, img_b))
 
     def _getModelName(self):
-        return f"{self.modelName}_{self.modelNum}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
+        return f"{self.modelName}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
 
     def evaluate(self):
         self._setup()

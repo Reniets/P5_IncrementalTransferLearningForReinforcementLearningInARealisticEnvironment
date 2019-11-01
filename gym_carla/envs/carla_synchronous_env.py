@@ -371,7 +371,7 @@ class CarlaSyncEnv(gym.Env):
         seg_sensor_blueprint.set_attribute('image_size_x', str(self.imgWidth))
         seg_sensor_blueprint.set_attribute('image_size_y', str(self.imgHeight))
         seg_sensor_blueprint.set_attribute('fov', '110')
-        relative_transform_sensor = carla.Transform(carla.Location(x=3, z=3), carla.Rotation(pitch=-45))  # Place sensor on the front of car
+        relative_transform_sensor = carla.Transform(carla.Location(x=2, z=3), carla.Rotation(pitch=-45))  # Place sensor on the front of car
 
         # Spawn semantic segmentation sensor, start listening for data and add to actorList
         seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
