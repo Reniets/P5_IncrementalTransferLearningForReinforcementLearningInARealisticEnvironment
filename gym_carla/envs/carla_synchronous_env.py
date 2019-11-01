@@ -163,6 +163,8 @@ class CarlaSyncEnv(gym.Env):
         else:
             raise Exception("No such action type, change settings")
 
+        self.gps.log_location()
+
         if settings.AGENT_SYNCED:
             self.tick(10)
 
@@ -303,8 +305,8 @@ class CarlaSyncEnv(gym.Env):
         # Video
         self.mediaHandler.episodeFrames = []
 
-        # GPS
-        self.gps.reset()
+        # # GPS
+        # self.gps.reset()
 
 
     def _createActors(self):

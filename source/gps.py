@@ -5,7 +5,7 @@ class Gps:
 
     def log_location(self):
         location = self.get_location()
-        self.location_log.append(location)
+        self.location_log.append([location.x, location.y])
 
     def get_location(self):
         return self.carla_environment.vehicle.get_location()
