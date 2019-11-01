@@ -19,11 +19,11 @@ class ComponentTransfer:
         self.parameterNamesToTransfer = None
         self.parametersToTransfer = {}
 
-    def transfer(self, fromAgentSavePath, toAgentSavePath, toLevel,  parameterIndicesToTransfer):
+    def transfer(self, fromAgentSavePath, toAgentSavePath, fromLevel, toLevel,  parameterIndicesToTransfer):
         # Setup
         self.fromAgentSavePath = fromAgentSavePath
         self.toAgentSavePath = toAgentSavePath
-        self.transferAgentSavePath = 'TransferAgentLogs/Transfer_FromLevel_' + fromAgentSavePath.split('_')[2] + '_ToLevel_' + str(toLevel)
+        self.transferAgentSavePath = f'TrainingLogs/TransferAgentLogs/Transfer_FromLevel_{str(fromLevel)}_ToLevel_{str(toLevel)}'
         self.parameterNamesToTransfer = self._getParametersToTransfer(parameterIndicesToTransfer)
 
         self._loadParametersToTransfer()
@@ -44,19 +44,19 @@ class ComponentTransfer:
     def _getParametersToTransfer(self, parameterIndicesToTransfer):
         parameterList = [
             "model/c1/w:0",
-            "model/c1/b:0",
+            "model/c1/b:0",  # 2
             "model/c2/w:0",
-            "model/c2/b:0",
+            "model/c2/b:0",  # 4
             "model/c3/w:0",
-            "model/c3/b:0",
+            "model/c3/b:0",  # 6
             "model/fc1/w:0",
-            "model/fc1/b:0",
+            "model/fc1/b:0",  # 8
             "model/vf/w:0",
             "model/vf/b:0",
             "model/pi/w:0",
-            "model/pi/b:0",
+            "model/pi/b:0",  # 12
             "model/q/w:0",
-            "model/q/b:0"
+            "model/q/b:0"  # 14
         ]
 
         return [parameterList[i] for i in parameterIndicesToTransfer]

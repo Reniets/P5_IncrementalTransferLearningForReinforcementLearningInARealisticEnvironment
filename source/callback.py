@@ -103,7 +103,7 @@ class Callback:
             self.maxRewardAchieved = mean
             if self.nEpisodes > 10:
                 print(f"Saving best model: step {self.nEpisodes} reward: {mean}")
-                _locals['self'].save(f"ExperimentLogsFinal/{self.runner.modelName}_{self.runner.modelNum}_best")
+                _locals['self'].save(f"TrainingLogs/BaselineAgentLogs/{self.runner.modelName}_{self.runner.modelNum}_best")
 
     def _storeTensorBoardData(self, _locals):
         n_episodes = self._getEpisodeCount()
@@ -174,7 +174,7 @@ class Callback:
         # Print stats every 100 calls
         if self.nEpisodes % settings.MODEL_EXPORT_RATE == 0:
             print(f"Saving new model: step {self.nEpisodes}")
-            _locals['self'].save(f"ExperimentLogsFinal/{self.runner.modelName}_{self.runner.modelNum}")
+            _locals['self'].save(f"TrainingLogs/BaselineAgentLogs/{self.runner.modelName}_{self.runner.modelNum}")
             self.runner.modelNum += 1
 
     def _testVehicles(self, _locals, runner_locals):

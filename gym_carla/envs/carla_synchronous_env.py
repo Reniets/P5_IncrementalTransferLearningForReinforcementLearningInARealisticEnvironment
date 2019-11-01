@@ -360,7 +360,9 @@ class CarlaSyncEnv(gym.Env):
 
         vehicle_spawn_transforms = self.world.get_map().get_spawn_points()
         if settings.USE_RANDOM_SPAWN_POINTS:
-            vehicle_spawn_transform = random.choice(vehicle_spawn_transforms)  # Pick a random spawn point
+            index = self.carlaInstance % len(vehicle_spawn_transforms)
+            #vehicle_spawn_transform = random.choice(vehicle_spawn_transforms)  # Pick a random spawn point
+            vehicle_spawn_transform = vehicle_spawn_transforms[index]
         else:
             vehicle_spawn_transform = vehicle_spawn_transforms[0]  # Use the first spawn point
         return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle
@@ -373,7 +375,7 @@ class CarlaSyncEnv(gym.Env):
         seg_sensor_blueprint.set_attribute('image_size_x', str(self.imgWidth))
         seg_sensor_blueprint.set_attribute('image_size_y', str(self.imgHeight))
         seg_sensor_blueprint.set_attribute('fov', '110')
-        relative_transform_sensor = carla.Transform(carla.Location(x=3, z=3), carla.Rotation(pitch=-45))  # Place sensor on the front of car
+        relative_transform_sensor = carla.Transform(carla.Location(x=2, z=3), carla.Rotation(pitch=-45))  # Place sensor on the front of car
 
         # Spawn semantic segmentation sensor, start listening for data and add to actorList
         seg_sensor = self.world.spawn_actor(seg_sensor_blueprint, relative_transform_sensor, attach_to=self.vehicle)
