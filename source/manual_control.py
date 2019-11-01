@@ -46,7 +46,7 @@ from __future__ import print_function
 # ==============================================================================
 # -- find carla module ---------------------------------------------------------
 # ==============================================================================
-from carla_utils import makeCarlaImportable
+from gym_carla.carla_utils import makeCarlaImportable
 
 makeCarlaImportable()
 

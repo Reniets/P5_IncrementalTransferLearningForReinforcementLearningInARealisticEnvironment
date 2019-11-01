@@ -38,43 +38,51 @@ class Callback:
         values = [array[-1] for array in all_rewards]
         return values
 
-    def _getAllCarlaEnvironments(self):
-        return self.runner.env.get_attr('env', [i for i in range(settings.CARS_PER_SIM)])
+    def _getAllCarlaEnvironmentGpsDatas(self):
+        return self.runner.env.env_method('get_location', indices=[i for i in range(settings.CARS_PER_SIM)])
 
-    def _maxCarEnvironment(self):
-        return self._getAllCarlaEnvironments()[np.argmax(self._getAllCarRewards())]
+    def _maxCarGpsData(self, gps_data):
+        return gps_data[np.argmax(self._getAllCarRewards())]
 
-    def _minCarEnvironment(self):
-        return self._getAllCarlaEnvironments()[np.argmin(self._getAllCarRewards())]
+    def _minCarGpsData(self, gps_data):
+        return gps_data[np.argmin(self._getAllCarRewards())]
 
-    def _medianCarEnvironment(self):
+    def _medianCarGpsData(self, gps_data):
         rewards = self._getAllCarRewards()
         median_index = np.argsort(rewards)[len(rewards) // 2]
-        return self._getAllCarlaEnvironments()[median_index]
+        return gps_data[median_index]
 
     def _exportGpsData(self, _locals):
-        self._exportGpsDataForEnvironment(self._maxCarEnvironment(), "max")
-        self._exportGpsDataForEnvironment(self._minCarEnvironment(), "min")
-        self._exportGpsDataForEnvironment(self._medianCarEnvironment(), "median")
+        gps_data = self._getAllCarlaEnvironmentGpsDatas()
 
-    def _exportGpsDataForEnvironment(self, carla_environment, name_prefix=""):
-        # Find gps to export data from
-        gps = carla_environment.gps
+        self._exportGpsDataForEnvironment(self._maxCarGpsData(gps_data), "max")
+        self._exportGpsDataForEnvironment(self._minCarGpsData(gps_data), "min")
+        self._exportGpsDataForEnvironment(self._medianCarGpsData(gps_data), "median")
 
-        # Prepare gps image
-        map_name = settings.CARLA_SIMS[0][2]
-        gps_image = GpsImage(self._getReferenceImagePath(map_name), self._getReferenceCoordinates(map_name))
-
-        # Create track image from reference photo and gps data
-        track_image = gps_image.applyCoordinates(gps)
-
+    def _exportGpsDataForEnvironment(self, gps_data, name_prefix=""):
         # Export the image
         image_dir = f"GpsData/{self.runner.modelName}"
 
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
 
-        cv2.imwrite(f"{image_dir}/{name_prefix}_{self.runner.modelNum}.png", track_image)
+        if False:
+            # Prepare gps image
+            map_name = settings.CARLA_SIMS[0][2]
+            gps_image = GpsImage(self._getReferenceImagePath(map_name), self._getReferenceCoordinates(map_name))
+
+            # Create track image from reference photo and gps data
+            track_image = gps_image.applyCoordinates(gps_data)
+
+            cv2.imwrite(f"{image_dir}/{name_prefix}_{self._getEpisodeCount()}.png", track_image)
+
+        if True:
+            file = open(f"{image_dir}/gps_{name_prefix}_{self._getEpisodeCount()}.txt", "w+")
+
+            for data in gps_data:
+                file.write(f"{data[0]};{data[1]}\n")
+
+            file.close()
 
     def _getReferenceImagePath(self, name):
         return f"{self._getGpsReferenceBaseFolder(name)}/map.png"
@@ -93,7 +101,7 @@ class Callback:
         return tuple(ref_data)
 
     def _getGpsReferenceBaseFolder(self, name):
-        return f"GpsData/A_referenceData/{name}/"
+        return f"GpsData/A_referenceData/{name}"
 
     def _exportBestModel(self, runner_locals, _locals):
         # info = _locals["ep_infos"]

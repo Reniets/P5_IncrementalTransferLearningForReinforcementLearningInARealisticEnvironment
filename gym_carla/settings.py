@@ -20,7 +20,7 @@ CARLA_IMG_MAX_SPEED = 80  # km/h
 CARLA_EVALUATION_RATE = 5  # Number of training episodes before a validation episode
 
 USE_RANDOM_SPAWN_POINTS = True
-EPISODES_PER_SESSION = 1
+EPISODES_PER_SESSION = 300
 
 # Video settings
 VIDEO_EXPORT_RATE = 1  # Episodes
