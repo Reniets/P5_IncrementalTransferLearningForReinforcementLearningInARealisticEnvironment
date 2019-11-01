@@ -48,7 +48,7 @@ class CarlaSyncEnv(gym.Env):
         # Video variables
         self.episodeNr = 0  # TODO WARNING: be careful using this as it also counts validation episodes
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession(self.modelName) if (self.carlaInstance == 0) else None
+        self.sessionId = sessionId
 
         # Early stopping variables
         self.grassLocation = None
