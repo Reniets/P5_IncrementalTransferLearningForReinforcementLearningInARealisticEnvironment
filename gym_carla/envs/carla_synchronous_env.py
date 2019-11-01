@@ -120,6 +120,8 @@ class CarlaSyncEnv(gym.Env):
         if self.carlaInstance == 0 and self.car_last_episode_time is not None:
             print(f"Episode:  {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
 
+        self.sql.INSERT_newEpisode(self.sessionId, self.carlaEnv.carlaInstance, self.episodeNr, self.episodeReward, None, None)
+
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
         if self.mediaHandler.episodeFrames:

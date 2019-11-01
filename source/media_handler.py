@@ -128,7 +128,7 @@ class MediaHandler:
         # with open(model_path, 'rb') as f:
         #     model_blob = f.read()
 
-        self.carlaEnv.sql.INSERT_newEpisode(session_id, episode_nr, episode_reward, video_blob, None)
+        self.carlaEnv.sql.INSERT_newEpisode(session_id, self.carlaEnv.carlaInstance, episode_nr, episode_reward, video_blob, None)
 
     def addSpeedOverlayToFrame(self, frame, speed):
         overlay = self.createSpeedBarOverlay(speed, 50, 50)
