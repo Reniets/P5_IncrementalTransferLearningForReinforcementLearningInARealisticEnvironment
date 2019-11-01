@@ -22,4 +22,4 @@ class Gps:
         self.location_log = []
 
     def _convertLocationToText(self, location):
-        return f"{location.x};{location.y};{location.z}"
+        return f"{location.x};{location.y}"
