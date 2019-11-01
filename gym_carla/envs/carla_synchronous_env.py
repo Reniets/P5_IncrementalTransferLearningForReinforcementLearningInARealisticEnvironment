@@ -22,7 +22,7 @@ from PIL import Image
 class CarlaSyncEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
 
-    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, world_ticks=None, name="NoNameWasGiven", runner=None, serverIndex=0):
+    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, sessionId=None, world_ticks=None, name="NoNameWasGiven", runner=None, serverIndex=0):
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[serverIndex][:2])
         self.client.set_timeout(2.0)

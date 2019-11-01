@@ -25,6 +25,7 @@ import numpy as np
 import tensorflow as tf
 from multiprocessing import Condition, Value
 from ctypes import c_uint64
+from database.sql import Sql
 
 
 class Runner:
@@ -43,6 +44,7 @@ class Runner:
         self.seenObservations = []
         self.maxStateCounter = 0
         self.loadFrom = None
+        self.sessionId = None
 
         self.parDict = {
 
@@ -71,6 +73,8 @@ class Runner:
         # Setup environment
         frame = startCarlaSims()
         self.modelName = settings.MODEL_NAME
+        sql = Sql()
+        self.sessionId = sql.INSERT_newSession(self.modelName)
 
         self.frameNumber = Value(c_uint64, frame)
 
@@ -91,6 +95,7 @@ class Runner:
             env = gym.make('CarlaGym-Sync-v0',
                            name=self.modelName,
                            carlaInstance=instance,
+                           sessionId=self.sessionId,
                            lock=self.lock,
                            frameNumber=self.frameNumber,
                            waiting_threads=self.waiting_threads,
