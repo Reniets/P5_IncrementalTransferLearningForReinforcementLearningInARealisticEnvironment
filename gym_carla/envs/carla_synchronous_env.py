@@ -22,7 +22,7 @@ from PIL import Image
 class CarlaSyncEnv(gym.Env):
     """Sets up CARLA simulation and declares necessary instance variables"""
 
-    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, world_ticks=None, name="NoNameWasGiven", runner=None, serverIndex=0):
+    def __init__(self, thread_count, lock, frameNumber, waiting_threads, carlaInstance=0, sessionId=None, world_ticks=None, name="NoNameWasGiven", runner=None, serverIndex=0):
         # Connect a client
         self.client = carla.Client(*settings.CARLA_SIMS[serverIndex][:2])
         self.client.set_timeout(2.0)
@@ -48,7 +48,7 @@ class CarlaSyncEnv(gym.Env):
         # Video variables
         self.episodeNr = 0  # TODO WARNING: be careful using this as it also counts validation episodes
         self.sql = Sql()
-        self.sessionId = self.sql.INSERT_newSession(self.modelName) if (self.carlaInstance == 0) else None
+        self.sessionId = sessionId
 
         # Early stopping variables
         self.grassLocation = None
@@ -134,6 +134,8 @@ class CarlaSyncEnv(gym.Env):
         # Print episode and reward for that episode
         if self.carlaInstance == 0 and self.car_last_episode_time is not None:
             print(f"Episode:  {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
+
+        self.sql.INSERT_newEpisode(self.sessionId, self.carlaEnv.carlaInstance, self.episodeNr, self.episodeReward, None, None)
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
