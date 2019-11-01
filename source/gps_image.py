@@ -44,12 +44,12 @@ class GpsImage:
         return np.array([cord[i] - base[i] for i in range(2)])
 
     # Coordinates should be a list of tuples
-    def applyCoordinates(self, gps):
+    def applyCoordinates(self, gps_data):
         image = self.image.copy()
 
         last_point = None
 
-        for coordinate in gps.location_log:
+        for coordinate in gps_data:
             img_coord = tuple(self._calculateImgCoordinate(coordinate))
 
             if last_point is None:
