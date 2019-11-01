@@ -53,8 +53,12 @@ class Callback:
         return self._getAllCarlaEnvironments()[median_index]
 
     def _exportGpsData(self, _locals):
-        # Find car to export data from
-        carla_environment = self._maxCarEnvironment()
+        self._exportGpsDataForEnvironment(self._maxCarEnvironment(), "max")
+        self._exportGpsDataForEnvironment(self._minCarEnvironment(), "min")
+        self._exportGpsDataForEnvironment(self._medianCarEnvironment(), "median")
+
+    def _exportGpsDataForEnvironment(self, carla_environment, name_prefix=""):
+        # Find gps to export data from
         gps = carla_environment.gps
 
         # Prepare gps image
@@ -70,7 +74,7 @@ class Callback:
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
 
-        cv2.imwrite(f"{image_dir}/{self.runner.modelNum}.png", track_image)
+        cv2.imwrite(f"{image_dir}/{name_prefix}_{self.runner.modelNum}.png", track_image)
 
     def _getReferenceImagePath(self, name):
         return f"{self._getGpsReferenceBaseFolder(name)}/map.png"
