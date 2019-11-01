@@ -12,6 +12,7 @@ import cv2
 # Import classes
 from source.reward import Reward
 from source.media_handler import MediaHandler
+from source.gps import Gps
 from multiprocessing import Condition, Lock
 makeCarlaImportable()
 import carla
@@ -80,6 +81,7 @@ class CarlaSyncEnv(gym.Env):
         # Declare classes
         self.reward = Reward(self)
         self.mediaHandler = MediaHandler(self)
+        self.gps = Gps(self)
 
         # Defines image space as a box which can look at standard rgb images of size imgWidth by imgHeight
         imageSpace = Box(low=0, high=255, shape=(self.imgHeight, self.imgWidth, 3), dtype=np.uint8)
@@ -301,13 +303,13 @@ class CarlaSyncEnv(gym.Env):
         # Video
         self.mediaHandler.episodeFrames = []
 
+        # GPS
+        self.gps.reset()
+
+
     def _createActors(self):
         # Spawn vehicle
         self.vehicle = self._createNewVehicle()
-        #print(self.vehicle.attributes)
-        #self.vehicle.attributes['color'] = '255,0,0'
-        #print(self.vehicle.attributes)
-
         self.actorList.append(self.vehicle)  # Add to list of actors which makes it easy to clean up later
 
         # Make segmentation sensor blueprint

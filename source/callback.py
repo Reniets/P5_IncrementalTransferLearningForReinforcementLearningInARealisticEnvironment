@@ -1,6 +1,9 @@
 from gym_carla import settings
+from source.gps_image import GpsImage
 import numpy as np
 import tensorflow as tf
+import cv2
+import os
 
 
 class Callback:
@@ -19,6 +22,7 @@ class Callback:
         self._updatePollingRate(_locals)
         self._storeTensorBoardData(_locals)
         self._exportBestModel(runner_locals, _locals)
+        self._exportGpsData(_locals)
         self._printCallbackStats(_locals)
 
         if self.nEpisodes % settings.CARLA_EVALUATION_RATE == 0:
@@ -28,6 +32,68 @@ class Callback:
 
     def _getEpisodeCount(self):
         return len(self.runner.env.get_attr('episode_rewards', 0)[0])
+
+    def _getAllCarRewards(self):
+        all_rewards = self.runner.env.get_attr('episode_rewards', [i for i in range(settings.CARS_PER_SIM)])
+        values = [array[-1] for array in all_rewards]
+        return values
+
+    def _getAllCarlaEnvironments(self):
+        return self.runner.env.get_attr('env', [i for i in range(settings.CARS_PER_SIM)])
+
+    def _maxCarEnvironment(self):
+        return self._getAllCarlaEnvironments()[np.argmax(self._getAllCarRewards())]
+
+    def _minCarEnvironment(self):
+        return self._getAllCarlaEnvironments()[np.argmin(self._getAllCarRewards())]
+
+    def _medianCarEnvironment(self):
+        rewards = self._getAllCarRewards()
+        median_index = np.argsort(rewards)[len(rewards) // 2]
+        return self._getAllCarlaEnvironments()[median_index]
+
+    def _exportGpsData(self, _locals):
+        self._exportGpsDataForEnvironment(self._maxCarEnvironment(), "max")
+        self._exportGpsDataForEnvironment(self._minCarEnvironment(), "min")
+        self._exportGpsDataForEnvironment(self._medianCarEnvironment(), "median")
+
+    def _exportGpsDataForEnvironment(self, carla_environment, name_prefix=""):
+        # Find gps to export data from
+        gps = carla_environment.gps
+
+        # Prepare gps image
+        map_name = settings.CARLA_SIMS[0][2]
+        gps_image = GpsImage(self._getReferenceImagePath(map_name), self._getReferenceCoordinates(map_name))
+
+        # Create track image from reference photo and gps data
+        track_image = gps_image.applyCoordinates(gps)
+
+        # Export the image
+        image_dir = f"GpsData/{self.runner.modelName}"
+
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+
+        cv2.imwrite(f"{image_dir}/{name_prefix}_{self.runner.modelNum}.png", track_image)
+
+    def _getReferenceImagePath(self, name):
+        return f"{self._getGpsReferenceBaseFolder(name)}/map.png"
+
+    def _getReferenceCoordinates(self, name):
+        reference_points_path = f"{self._getGpsReferenceBaseFolder(name)}/ref.txt"
+
+        file = open(reference_points_path, "r")
+        ref_data = []
+
+        for line in file:
+            data_split = line.split(";")
+            data = np.array([float(data_split[i]) for i in range(4)]).reshape((2, 2))
+            ref_data.append(data)
+
+        return tuple(ref_data)
+
+    def _getGpsReferenceBaseFolder(self, name):
+        return f"GpsData/A_referenceData/{name}/"
 
     def _exportBestModel(self, runner_locals, _locals):
         # info = _locals["ep_infos"]
@@ -45,8 +111,7 @@ class Callback:
         if n_episodes > self.prev_episode:
             self.prev_episode = n_episodes
 
-            allRewards = self.runner.env.get_attr('episode_rewards', [i for i in range(settings.CARS_PER_SIM)])
-            values = [array[-1] for array in allRewards]
+            values = self._getAllCarRewards()
 
             median = np.median(values)
             summary = tf.Summary(value=[tf.Summary.Value(tag='episodeRewardMedian', simple_value=median)])
