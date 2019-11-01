@@ -42,15 +42,16 @@ class Runner:
         self.callback = Callback(self)
         self.seenObservations = []
         self.maxStateCounter = 0
+        self.loadFrom = None
 
         self.parDict = {
 
         }
 
-    def train(self, total_timesteps=1000000000):
+    def train(self, loadFrom=None, total_timesteps=1000000000):
         self._setup()
+        self.loadFrom = loadFrom
         self.model = self._getModel(strictLoad=False)  # Load the model
-
         # Perform learning
         #before = time.clock()
         self.model.learn(total_timesteps=total_timesteps, callback=self.callback.callback, tb_log_name=self.modelName)
@@ -59,7 +60,7 @@ class Runner:
         #print(f"World ticks: {self.world_ticks.value}, Duration: {duration}", "")
         #print(f"WT/S: {self.world_ticks.value / duration}, CWT/S: {self.world_ticks.value / duration * settings.CARS_PER_SIM}")
 
-        self.model.save(f"{self.modelName}_{self.modelNum}")
+        self.model.save(f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}_{self.modelNum}")
 
         print("Done Training")
         self.env.close()
@@ -69,6 +70,7 @@ class Runner:
     def _setup(self):
         # Setup environment
         frame = startCarlaSims()
+        self.modelName = settings.MODEL_NAME
 
         self.frameNumber = Value(c_uint64, frame)
 
@@ -78,7 +80,6 @@ class Runner:
         # Decide which RL module and policy
         self.rlModule = getattr(sys.modules[__name__], settings.MODEL_RL_MODULE)
         self.policy = getattr(sys.modules[__name__], settings.MODEL_POLICY)
-        self.modelName = settings.MODEL_NAME
         self.modelNum = settings.MODEL_NUMBER if settings.MODEL_NUMBER is not None else 0
 
     def make_env(self, instance):
@@ -93,7 +94,7 @@ class Runner:
                            lock=self.lock,
                            frameNumber=self.frameNumber,
                            waiting_threads=self.waiting_threads,
-                           thread_count = settings.CARS_PER_SIM
+                           thread_count=settings.CARS_PER_SIM
                            )
 
             env = Monitor(env, f'monitor/{instance}', allow_early_resets=True)
@@ -144,7 +145,7 @@ class Runner:
         # Always
         kwags = {
             "env": self.env,
-            "tensorboard_log": "./ExperimentTensorboardLog" if settings.MODEL_USE_TENSORBOARD_LOG else None,
+            "tensorboard_log": "./TensorboardLogs" if settings.MODEL_USE_TENSORBOARD_LOG else None,
             "n_steps": settings.MODEL_N_STEPS,
             "nminibatches": settings.MODEL_MINI_BATCHES,
             "ent_coef": settings.MODEL_ENT_COEF,
@@ -230,7 +231,7 @@ class Runner:
         return np.sum(np.equal(img_a, img_b))
 
     def _getModelName(self):
-        return f"{self.modelName}.zip" if not settings.TRANSFER_AGENT == TransferType.WEIGHTS.value else f"TransferAgentLogs/{self.modelName}.zip"
+        return f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}.zip" if settings.TRANSFER_AGENT is 0 else self.loadFrom
 
     def evaluate(self):
         self._setup()

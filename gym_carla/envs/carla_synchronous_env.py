@@ -358,7 +358,9 @@ class CarlaSyncEnv(gym.Env):
 
         vehicle_spawn_transforms = self.world.get_map().get_spawn_points()
         if settings.USE_RANDOM_SPAWN_POINTS:
-            vehicle_spawn_transform = random.choice(vehicle_spawn_transforms)  # Pick a random spawn point
+            index = self.carlaInstance % len(vehicle_spawn_transforms)
+            #vehicle_spawn_transform = random.choice(vehicle_spawn_transforms)  # Pick a random spawn point
+            vehicle_spawn_transform = vehicle_spawn_transforms[index]
         else:
             vehicle_spawn_transform = vehicle_spawn_transforms[0]  # Use the first spawn point
         return self.world.spawn_actor(vehicle_blueprint, vehicle_spawn_transform)  # Spawn vehicle

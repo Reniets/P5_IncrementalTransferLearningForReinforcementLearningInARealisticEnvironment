@@ -23,7 +23,7 @@ class ComponentTransfer:
         # Setup
         self.fromAgentSavePath = fromAgentSavePath
         self.toAgentSavePath = toAgentSavePath
-        self.transferAgentSavePath = 'TransferAgentLogs/Transfer_FromLevel_' + str(fromLevel) + '_ToLevel_' + str(toLevel) + '_Selective'
+        self.transferAgentSavePath = f'TrainingLogs/TransferAgentLogs/Transfer_FromLevel_{str(fromLevel)}_ToLevel_{str(toLevel)}'
         self.parameterNamesToTransfer = self._getParametersToTransfer(parameterIndicesToTransfer)
 
         self._loadParametersToTransfer()
