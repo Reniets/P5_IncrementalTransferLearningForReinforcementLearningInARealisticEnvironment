@@ -60,6 +60,7 @@ class CarlaSyncEnv(gym.Env):
         self.grassSensor = None
         self.splineSensor = None
         self.imgFrame = None
+        self.segImgFrame = None
         self.wheelsOnGrass = None
         self.episodeStartTime = 0
         self.episodeReward = None
@@ -88,6 +89,7 @@ class CarlaSyncEnv(gym.Env):
 
         # Defines observation and action spaces
         self.observation_space = imageSpace
+        self.segmented_observation_space = (self.imgHeight, self.imgWidth)
 
         if settings.MODEL_ACTION_TYPE == ActionType.DISCRETE.value:
             self.action_space = Discrete(len(DISCRETE_ACTIONS))
@@ -108,16 +110,15 @@ class CarlaSyncEnv(gym.Env):
         if settings.AGENT_SYNCED: self.tick(10)
 
     def prepare_for_world_change(self):
-        self.actorList = []
-        self.queues = []
+        self._resetActorList()
         self._resetInstanceVariables()
-        self.client = None
-        self.world = None
-        self.blueprintLibrary = None
+        #self.client = None
+        #self.world = None
+        #self.blueprintLibrary = None
 
     def reset_world(self):
-        self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
-        self.client.set_timeout(2.0)
+        #self.client = carla.Client(*settings.CARLA_SIMS[0][:2])
+        #self.client.set_timeout(2.0)
         self.world = self.client.get_world()
         self.blueprintLibrary = self.world.get_blueprint_library()
 
@@ -127,15 +128,14 @@ class CarlaSyncEnv(gym.Env):
 
     ''':returns initial observation'''
     def reset(self):
-        self.episodeNr += 1  # Count episodes TODO WARNING: be careful using this as it also counts validation episodes
+        if self.episodeReward is not None:
+            self.episodeNr += 1  # Count episodes TODO WARNING: be careful using this as it also counts validation episodes
 
-        #self.logSensor("reset()")
+            #self.logSensor("reset()")
 
-        # Print episode and reward for that episode
-        if self.carlaInstance == 0 and self.car_last_episode_time is not None:
-            print(f"Episode:  {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
-
-        self.sql.INSERT_newEpisode(self.sessionId, self.carlaEnv.carlaInstance, self.episodeNr, self.episodeReward, None, None)
+            # Print episode and reward for that episode
+            if self.carlaInstance == 0 and self.car_last_episode_time is not None:
+                print(f"Episode:  {self.episodeNr} - Reward: {self.episodeReward} \t - Time: {time.time() - self.car_last_episode_time}")
 
         # Frames are only added, if it's a video episode, so if there are frames it means that last episode
         # was a video episode, so we should export it, before we reset the frames list below
@@ -163,7 +163,7 @@ class CarlaSyncEnv(gym.Env):
 
         # Disengage brakes from earlier workaround
         self._applyActionDiscrete(Action.DO_NOTHING.value)
-        return self.imgFrame  # Returns initial observation (First image)
+        return [self.imgFrame, self.segImgFrame]  # Returns initial observation (First image)
 
     ''':returns (obs, reward, done, extra)'''
     def step(self, action):
@@ -196,7 +196,7 @@ class CarlaSyncEnv(gym.Env):
         # else:
         #     extra = {}
 
-        return self.imgFrame, reward, is_done, {}  # extra
+        return [self.imgFrame, self.segImgFrame], reward, is_done, {}  # extra
 
     def synchronized_world_tick(self):
         #self.logSensor(f"synchronized_world_tick pre [{self.frameNumber.value}]")
@@ -303,6 +303,7 @@ class CarlaSyncEnv(gym.Env):
         self.segSensor = None
         self.grassSensor = None
         self.imgFrame = None
+        self.segImgFrame = None
         self.wheelsOnGrass = None
         self.episodeTicks = 0
         self.episodeReward = None

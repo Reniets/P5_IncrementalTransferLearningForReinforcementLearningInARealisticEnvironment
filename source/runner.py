@@ -9,6 +9,7 @@ from os import path
 import sys
 
 from source.callback import Callback
+from source.uncertainty_calculator import UncertaintyCalculator
 
 sys.path.append(path.abspath('../../stable-baselines'))
 
@@ -40,6 +41,7 @@ class Runner:
         self.frameNumber = Value(c_uint64, 0)
         self.waiting_threads = Value(c_uint64, 0)
         self.modelName = None
+        self.directorModelName = None
         self.callback = Callback(self)
         self.seenObservations = []
         self.maxStateCounter = 0
@@ -50,17 +52,13 @@ class Runner:
 
         }
 
-    def train(self, loadFrom=None, total_timesteps=1000000000):
+    def train(self, loadFrom=None, directorLoadFrom=None, total_timesteps=1000000000):
         self._setup()
+        self.directorModelName = directorLoadFrom
         self.loadFrom = loadFrom
         self.model = self._getModel(strictLoad=False)  # Load the model
         # Perform learning
-        #before = time.clock()
         self.model.learn(total_timesteps=total_timesteps, callback=self.callback.callback, tb_log_name=self.modelName)
-        #self.model.learn(total_timesteps=100000, callback=self._callback)
-        #duration = time.clock() - before
-        #print(f"World ticks: {self.world_ticks.value}, Duration: {duration}", "")
-        #print(f"WT/S: {self.world_ticks.value / duration}, CWT/S: {self.world_ticks.value / duration * settings.CARS_PER_SIM}")
 
         self.model.save(f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}_{self.modelNum}")
 
@@ -117,8 +115,8 @@ class Runner:
         model_exist = os.path.isfile(modelName)
         not_imitation_transfer = settings.TRANSFER_AGENT != TransferType.IMITATION.value
 
-        should_load_model = model_number_is_set and model_exist and not_imitation_transfer
-
+        should_load_model = model_number_is_set and model_exist# and not_imitation_transfer
+        print(self.modelName, model_exist)
         # Create model
         if should_load_model:
             print("LOAD MODEL")
@@ -136,7 +134,7 @@ class Runner:
         return model
 
     def _getModelImitation(self):
-        model_name = self._getModelName()
+        model_name = self.directorModelName
 
         if os.path.isfile(model_name):
             print(F"LOAD DIRECTOR: {model_name}")
@@ -153,10 +151,13 @@ class Runner:
             "tensorboard_log": "./TensorboardLogs" if settings.MODEL_USE_TENSORBOARD_LOG else None,
             "n_steps": settings.MODEL_N_STEPS,
             "nminibatches": settings.MODEL_MINI_BATCHES,
+            "noptepochs": settings.MODEL_NOPTEPOCHS,
             "ent_coef": settings.MODEL_ENT_COEF,
             "learning_rate": lambda frac: settings.MODEL_LEARNING_RATE,
             "cliprange": lambda frac: settings.MODEL_CLIP_RANGE,
-            "cliprange_vf": lambda frac: settings.MODEL_CLIP_RANGE
+            "cliprange_vf": lambda frac: settings.MODEL_CLIP_RANGE_VF,
+            "gamma": settings.MODEL_DISCOUNT_FACTOR,
+            "vf_coef": settings.MODEL_VF_COEF
         }
 
         # Only new models
@@ -165,9 +166,15 @@ class Runner:
 
         # Only imitation agents
         if settings.TRANSFER_AGENT == TransferType.IMITATION.value and not dismiss_director:
+
+            # uncertainty = lambda: None
+            # uncertainty.get_uncertainty = lambda obs: self.calculateUncertainty(obs)
+            # uncertainty.update_uncertainty = lambda indices: self.updateStateCounter(indices)
+
             kwags.update({
                 "polling_rate": lambda: settings.TRANSFER_POLLING_RATE_START,
-                "uncertainty": lambda obs: self.calculateUncertainty(obs),
+                "uncertainty": UncertaintyCalculator(self.modelName),
+                #"uncertainty": lambda obs: self.calculateUncertainty(obs),
                 "director": self._getModelImitation(),
             })
 
@@ -175,41 +182,54 @@ class Runner:
 
     def calculateUncertainty(self, obs):
         uncertainties = []
-
-        # Convert observations to expected category format
-        obs = self._convertObservationsToCategoryFormat(obs)
+        ids = []
 
         # Get uncertainties
         for observation in obs:
-            uncertainties.append(self._getObservationUncertainty(observation))
+            uncertainty, index = self._getObservationUncertaintyAndID(observation)
 
-        return uncertainties
+            uncertainties.append(uncertainty)
+            ids.append(index)
 
-    def _convertObservationsToCategoryFormat(self, obs):
-        conv_obs = []
+            # uncertainties.append(self._getObservationUncertainty(observation))
 
-        for ob in obs:
-            conv_obs.append(self._convertObservationToCategoryFormat(ob))
+        return uncertainties, ids
 
-        return conv_obs
+    def _getObservationUncertaintyAndID(self, observation):
+        state_counter, index = self._getStateCounterAndIndex(observation)
 
-    def _convertObservationToCategoryFormat(self, observation):
-        return [1 for _ in range(settings.CARLA_IMG_WIDTH * settings.CARLA_IMG_HEIGHT)]  # TODO: UPDATE
+        return 1/(1+(settings.UNCERTAINTY_RATE*state_counter)), index
 
     def _getObservationUncertainty(self, observation):
         state_counter = self._getStateCounterAndIncrement(observation)
 
         if state_counter == 0:
-            print(f"NEW STATE!! - TOTAL STATES: {len(self.seenObservations)}")
-            pass
+            pass#print(f"NEW STATE!! - TOTAL STATES: {len(self.seenObservations)}")
 
-        if self.maxStateCounter == 0:
-            return 1
-        else:
-            return state_counter / self.maxStateCounter
+        return 1/(1+(settings.UNCERTAINTY_RATE*state_counter))
+
+    def _getStateCounterAndIndex(self, obs):
+        # Loop all seen images, and try to locate an image that is close to the current one
+        for index, ob_tuple in enumerate(self.seenObservations):
+            seen_ob = ob_tuple[1]
+            equal_pixels = self._getImageEqualness(seen_ob, obs)
+
+            if equal_pixels >= settings.TRANSFER_IMITATION_THRESHOLD:
+                return ob_tuple[0], index
+
+        # We have never seen anything like this new observation, so add it to the list,
+        # and return 0 since it's the first time we see it
+        self.seenObservations.append((0, obs))
+        #print(f"NEW STATE!! - TOTAL STATES: {len(self.seenObservations)}")
+        return 0, len(self.seenObservations)-1
+
+    def updateStateCounter(self, indices):
+        for index in indices:
+            self.seenObservations[index][0] += 1
+            #self.seenObservations[index] = (seen_counter + 1, obs)
 
     def _getStateCounterAndIncrement(self, new_ob):
-        # Loop all seen images, and try to locate an image that are close to the current one
+        # Loop all seen images, and try to locate an image that is close to the current one
         for index, ob_tuple in enumerate(self.seenObservations):
             seen_ob = ob_tuple[1]
             equal_pixels = self._getImageEqualness(seen_ob, new_ob)
@@ -236,7 +256,17 @@ class Runner:
         return np.sum(np.equal(img_a, img_b))
 
     def _getModelName(self):
-        return f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}.zip" if settings.TRANSFER_AGENT is 0 else self.loadFrom
+        if settings.TRANSFER_AGENT is 0:
+            modelName = f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}.zip"
+        elif settings.TRANSFER_AGENT is 1:
+            modelName = self.loadFrom
+        else:
+            if self.loadFrom is not None:
+                modelName = self.loadFrom
+            else:
+                modelName = f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}.zip"
+
+        return modelName
 
     def evaluate(self):
         self._setup()
@@ -252,5 +282,5 @@ class Runner:
             # We need to pass the previous state and a mask for recurrent policies
             # to reset lstm state when a new episode begin
 
-            action, state = self.model.predict(obs, state=state, mask=done, deterministic=True)
+            action, state = self.model.predict(obs, state=state, mask=done, deterministic=False)
             obs, reward, done, _ = self.env.step(action)

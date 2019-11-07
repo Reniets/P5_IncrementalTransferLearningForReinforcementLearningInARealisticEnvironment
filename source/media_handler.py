@@ -17,8 +17,21 @@ class MediaHandler:
 
     def processImage(self, data):
         # self.carlaEnv.logSensor("processImage")
+
+        #segImageData = np.zeros(shape=self.carlaEnv.segmented_observation_space, dtype=np.int8)
+        segData = [element.r for element in data]
+        segImageData = np.reshape(segData, self.carlaEnv.segmented_observation_space)
+
+        # if self.carlaEnv.segImgFrame is not None:
+        #     diff = np.sum(self.carlaEnv.segImgFrame-segImageData)
+        #     if diff > 0:
+        #         print(f"seg diff: {diff}")
+
+        self.carlaEnv.segImgFrame = segImageData
+
         cc = carla.ColorConverter.CityScapesPalette
         data.convert(cc)
+
         # Get image, reshape and remove alpha channel
         image = np.array(data.raw_data)
         image = image.reshape((self.carlaEnv.imgHeight, self.carlaEnv.imgWidth, 4))
@@ -68,7 +81,7 @@ class MediaHandler:
         width = self._getVideoWidth()
         height = self._getVideoHeight()
 
-        return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC)
+        return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_NEAREST)
 
     def _getVideoWidth(self):
         return max(settings.CARLA_IMG_WIDTH, settings.VIDEO_MAX_WIDTH)
@@ -128,7 +141,7 @@ class MediaHandler:
         # with open(model_path, 'rb') as f:
         #     model_blob = f.read()
 
-        self.carlaEnv.sql.INSERT_newEpisode(session_id, self.carlaEnv.carlaInstance, episode_nr, episode_reward, video_blob, None)
+        self.carlaEnv.sql.INSERT_newEpisode(session_id, self.carlaEnv.carlaInstance, episode_nr, episode_reward, False, video_blob, None)
 
     def addSpeedOverlayToFrame(self, frame, speed):
         overlay = self.createSpeedBarOverlay(speed, 50, 50)

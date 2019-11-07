@@ -5,6 +5,7 @@ import tensorflow as tf
 import cv2
 import os
 from gym_carla.carla_utils import changeMap
+from database.sql import Sql
 
 
 class Callback:
@@ -14,6 +15,7 @@ class Callback:
         self.nEpisodes = 0
         self.prev_episode = 0
         self.maxRewardAchieved = float('-inf')
+        self.sql = Sql()
 
     def callback(self, runner_locals, _locals):
         self.nEpisodes += 1
@@ -25,11 +27,19 @@ class Callback:
         self._exportBestModel(runner_locals, _locals)
         self._exportGpsData(_locals)
         self._printCallbackStats(_locals)
+        self._exportRewardsToDB(self._getAllCarRewards())
 
         if self.nEpisodes % settings.CARLA_EVALUATION_RATE == 0:
             self._testVehicles(_locals, runner_locals)
 
         return True
+
+    def _exportRewardsToDB(self, rewards, evaluation=False):
+        sessionId = self.runner.sessionId
+
+        for instance in range(len(rewards)):
+            self.sql.INSERT_newEpisode(sessionId, instance, self._getEpisodeCount(), rewards[instance], evaluation=evaluation)
+
 
     def _getEpisodeCount(self):
         return len(self.runner.env.get_attr('episode_rewards', 0)[0])
@@ -70,7 +80,7 @@ class Callback:
         if False:
             # Prepare gps image
             map_name = settings.CARLA_SIMS[0][2]
-            gps_image = GpsImage(self._getReferenceImagePath(map_name), self._getReferenceCoordinates(map_name))
+            gps_image = GpsImage(self.getReferenceImagePath(map_name), self.getReferenceCoordinates(map_name))
 
             # Create track image from reference photo and gps data
             track_image = gps_image.applyCoordinates(gps_data)
@@ -85,10 +95,10 @@ class Callback:
 
             file.close()
 
-    def _getReferenceImagePath(self, name):
+    def getReferenceImagePath(self, name):
         return f"{self._getGpsReferenceBaseFolder(name)}/map.png"
 
-    def _getReferenceCoordinates(self, name):
+    def getReferenceCoordinates(self, name):
         reference_points_path = f"{self._getGpsReferenceBaseFolder(name)}/ref.txt"
 
         file = open(reference_points_path, "r")
@@ -189,10 +199,10 @@ class Callback:
     def _testVehicles(self, _locals, runner_locals):
         print("Evaluating vehicles...")
         # Evaluate agent in environment
-
+        #director = self.runner._getModelImitation()
         # TODO: If we want to evaluate on 'alt' maps, load them here!!!
         old_map = settings.CARLA_SIMS[0][2]
-        load_new_map = False #old_map in settings.CARLA_EVALUATION_MAPS
+        load_new_map = old_map in settings.CARLA_EVALUATION_MAPS
         if load_new_map:
             self.runner.env.env_method('prepare_for_world_change', indices=[i for i in range(settings.CARS_PER_SIM)])
             changeMap(settings.CARLA_EVALUATION_MAPS[old_map])
@@ -213,14 +223,28 @@ class Callback:
 
         rewards_accum = np.zeros(settings.CARS_PER_SIM)
 
-        state = None
-        done = False
-        obs = self.runner.env.reset()
+        state = np.zeros((21, 512))
+        done = [False for _ in range(settings.CARS_PER_SIM)]
+        observations = self.runner.env.reset()
+        obs = observations[0]
 
         # Play some limited number of steps
         for i in range(settings.CARLA_TICKS_PER_EPISODE_STATIC):
-            action, state = self.runner.model.predict(obs, state=state, mask=done, deterministic=True)
-            obs, rewards, done, info = self.runner.env.step(action)
+            #action_prob = self.runner.model.proba_step(obs, state, done)
+            #director_action_prob = director.proba_step(obs, state, done)
+            action, value, state, neglog = self.runner.model.step(obs, state=state, mask=done, deterministic=False)
+
+            # with open("evaluation_approx_kl", 'a+') as file:
+            #     approx_kl = 0
+            #     for i in range(len(action_prob)):
+            #         np_director_action_prob = np.concatenate(director_action_prob[i]).ravel()
+            #         np_action_prob = np.concatenate(action_prob[i]).ravel()
+            #         approx_kl += np.mean(np.square(np.subtract(np_director_action_prob, np_action_prob)))
+            #     approx_kl /= len(action_prob)
+            #     file.write(f"{approx_kl}\n")
+
+            observations, rewards, done, info = self.runner.env.step(action)
+            obs = observations[0]
             rewards_accum += rewards
 
         if load_new_map:
@@ -229,6 +253,9 @@ class Callback:
             self.runner.env.env_method('reset_actors', indices=[i for i in range(settings.CARS_PER_SIM)])
 
         self.runner.env.reset()
+
+        self._exportRewardsToDB(rewards_accum, True)
+
         mean = rewards_accum.mean()
         print(f"Done evaluating: {mean}")
         summary = tf.Summary(value=[tf.Summary.Value(tag='EvaluationMean', simple_value=mean)])
