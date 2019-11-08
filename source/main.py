@@ -1,24 +1,43 @@
-# from gym_carla.carla_utils import startCarlaSims
-# import os, logging
-# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-# logging.getLogger("tensorflow").setLevel(logging.CRITICAL)
-# logging.getLogger("tensorflow_hub").setLevel(logging.CRITICAL)
+import glob
 
 from source.runner import Runner
 import gym_carla.settings as settings
 import sys
 from source.componentTransfer import ComponentTransfer
 
-if __name__ == '__main__':
-
-    mapNumber = int(sys.argv[1])
+def makeTransfer(mapNumberFrom, mapNumberTo):
+    settings.MODEL_NAME = f"Transfer_FromLevel_{mapNumberFrom}_ToLevel_{mapNumberTo}"
+    settings.MODEL_NUMBER = 0
+    loadFrom = glob.glob(f'TrainingLogs/FullyTrainedAgentLogs/Base_Level_{mapNumberFrom}_*')[0]
 
     ct = ComponentTransfer()
-    #fromName = f'TransferAgentLogs/Transfer_FromLevel_{mapNumber -2}_ToLevel_{mapNumber-1}_Continued.zip' if mapNumber != 2 else f'Base_Level_1_Final.zip'
-    #ct.transfer(fromName, 'CleanAgent.zip', fromLevel=mapNumber-1, toLevel=mapNumber, parameterIndicesToTransfer=[i for i in range(14)])  # Full transfer
-    #ct.transfer(f'Base_Level_{mapNumber}_Final.zip', 'CleanAgent.zip', toLevel=mapNumber + 1, fromLevel=mapNumber, parameterIndicesToTransfer=[i for i in range(14)])  # Full transfer
-    ct.transfer(f'Base_Level_{mapNumber}_Final.zip', 'CleanAgent.zip', toLevel=mapNumber + 1, fromLevel=mapNumber, parameterIndicesToTransfer=[i for i in range(8)])  # Selective transfer
+    ct.transfer(loadFrom, 'TrainingLogs/CleanAgent.zip', fromLevel=mapNumberFrom, toLevel=mapNumberTo,
+                parameterIndicesToTransfer=[i for i in range(16)])  # Full transfer
 
+    settings.MODEL_LEARNING_RATE = 0.00025
+
+
+if __name__ == '__main__':
+    mapNumber = int(sys.argv[1])
+    settings.TRANSFER_AGENT = int(sys.argv[2])
+    loadFrom = None
+    directorLoadFrom = None
+
+    if settings.TRANSFER_AGENT == 0:  # No transfer
+        logFolder = 'TrainingLogs/BaselineAgentLogs/'
+        makeTransfer(mapNumberFrom=mapNumber, mapNumberTo=mapNumber+1)
+
+    elif settings.TRANSFER_AGENT == 1:  # Transfer
+        logFolder = 'TrainingLogs/TransferAgentLogs/'
+        settings.MODEL_NAME = f"Base_Level_{mapNumber}"
+        settings.MODEL_NUMBER = None
+        settings.MODEL_LEARNING_RATE = 0.00075
+
+    elif settings.TRANSFER_AGENT == 2:  # Imitation
+        #loadFrom = 'TrainingLogs/Transfer_FromLevel_6_ToLevel_6_cnnForImitation.zip'
+        settings.MODEL_NAME = f"Imitation_Lstm_Test"
+        settings.MODEL_NUMBER = None
+        directorLoadFrom = 'TrainingLogs/FullyTrainedAgentLogs/Base_Level_6_89.zip'
 
     maps = [
         'Straight_Slim',
@@ -33,12 +52,16 @@ if __name__ == '__main__':
     ]
 
     runner = Runner()
-    map = maps[mapNumber]
+    map = maps[mapNumber-1]
 
-    settings.MODEL_NAME = f"Transfer_FromLevel_{mapNumber}_ToLevel_{mapNumber+1}_Selective"
     settings.CARLA_SIMS[0][2] = map
-    total_timesteps = settings.CARLA_TICKS_PER_EPISODE_STATIC * settings.EPISODES_PER_SESSION * settings.CARS_PER_SIM
-    runner.train(total_timesteps=total_timesteps)  # Train a model
+
+    episodeMultiplier = mapNumber# if settings.TRANSFER_AGENT == 0 else 1
+    total_timeSteps = settings.CARLA_TICKS_PER_EPISODE_STATIC * settings.EPISODES_PER_SESSION * settings.CARS_PER_SIM * episodeMultiplier
+    runner.train(
+        loadFrom=loadFrom,
+        directorLoadFrom=directorLoadFrom,
+        total_timesteps=total_timeSteps)  # Train a model
     #
     # # runner.evaluate()     # Evaluate model
     #

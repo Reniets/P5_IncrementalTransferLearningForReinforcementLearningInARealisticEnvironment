@@ -42,14 +42,14 @@ class Sql:
 
         return cursor.lastrowid
 
-    def INSERT_newEpisode(self, session_id, episode_nr, reward, video_blob = None, model_blob = None):
+    def INSERT_newEpisode(self, session_id, instance, episode_nr, reward, evaluation=False, video_blob=None, model_blob=None):
         cursor = self._cursor()
 
         query = """
-                    INSERT INTO `episodes`(`session`, `number`, `reward`, `video_blob`, `model_blob`) 
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO `episodes`(`session`, `number`, `instance`, `reward`, `evaluation`, `video_blob`, `model_blob`) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
-        cursor.execute(query, (session_id, episode_nr, reward, video_blob, model_blob))
+        cursor.execute(query, (session_id, episode_nr, instance, float(reward), 1 if evaluation else 0, video_blob, model_blob))
 
         self.db.commit()
 
