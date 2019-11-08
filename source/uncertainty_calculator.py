@@ -1,11 +1,14 @@
 import cv2
 
 from gym_carla import settings
+from source.uncertaintyLogger import UncertaintyLogger
 import numpy as np
 import os
 
 class UncertaintyCalculator:
     def __init__(self, modelName):
+        self.counter = 0
+        self.logger = UncertaintyLogger()
         self.modelName = modelName
         self.seenObservations = []
         self.index = 0
@@ -50,9 +53,19 @@ class UncertaintyCalculator:
             uncertainties.append(uncertainty)
             ids.append(index)
 
+        self._logOrExportCounters()
+
         return uncertainties, ids
 
+    def _logOrExportCounters(self):
+        if (self.counter + 1) % 50 == 0:
+            self.logger.log(self.seenObservations)
+
+        if (self.counter + 1) % 350 == 0:
+            self.logger.exportAsCsv("imitation_frames", f"bar_race_{self.counter}.csv")
+
     def updateStateCounter(self, indices):
+        self.counter += 1
         for index in indices:
             seen_counter, obs = self.seenObservations[index]
             self.seenObservations[index] = (seen_counter + 1, obs)
