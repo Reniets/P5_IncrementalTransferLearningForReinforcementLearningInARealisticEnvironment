@@ -176,6 +176,7 @@ class Runner:
                 "uncertainty": UncertaintyCalculator(self.modelName),
                 #"uncertainty": lambda obs: self.calculateUncertainty(obs),
                 "director": self._getModelImitation(),
+                "imitation_advantage": settings.IMITATION_ADVANTAGE
             })
 
         return kwags

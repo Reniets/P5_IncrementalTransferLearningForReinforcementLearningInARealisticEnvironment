@@ -9,7 +9,7 @@ class UncertaintyCalculator:
         self.modelName = modelName
         self.seenObservations = []
         self.index = 0
-        self.indexPixelMap = { 0:(0, 0, 0), 1:(70, 70, 70), 2:(153, 153, 190),
+        self.indexPixelMap = { 0:(0, 0, 0), 1:(70, 70, 70), 2:(153, 153, 190), # RGB - #BGR
                                3:(160, 170, 250), 4:(60, 20, 220), 5:(153, 153, 153),
                                6:(50, 234, 157), 7:(128, 64, 128), 8:(232, 35, 244),
                                9:(35, 142, 107), 10:(142, 0, 0), 11:(156, 102, 102), 12:(0, 220, 220) }
@@ -17,7 +17,8 @@ class UncertaintyCalculator:
     def _getObservationUncertaintyAndID(self, observation):
         state_counter, index = self._getStateCounterAndIndex(observation)
 
-        return 1/(1+(settings.UNCERTAINTY_RATE*state_counter)), index
+        return max(1 - (state_counter/settings.UNCERTAINTY_TIMES), 0), index
+        #return 1/(1+(settings.UNCERTAINTY_RATE*state_counter)), index
 
     def _getStateCounterAndIndex(self, obs):
         # Loop all seen images, and try to locate an image that is close to the current one
@@ -64,8 +65,13 @@ class UncertaintyCalculator:
         cv2.imwrite(f"{path}/{index}.png", pixels)
 
     def _convertCategoryToImg(self, obs):
-        pixels = np.array([[self.indexPixelMap[o] for o in r] for r in obs], dtype=np.int8)
-        return pixels.reshape((50, 50, 3))
+        pixels = []
+        
+        for row in obs:
+            for pixel in row:
+                pixels.append(self.indexPixelMap[pixel])
+
+        return np.reshape(pixels, (50, 50, 3))
 
 
 

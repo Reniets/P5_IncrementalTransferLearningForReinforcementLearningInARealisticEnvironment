@@ -53,7 +53,9 @@ MODEL_NAME = "DefaultName"
 TRANSFER_AGENT = 2  # 0: NONE, 1: WEIGHTS, 2: IMITATION
 TRANSFER_POLLING_RATE_START = 1  # [1; 0]
 TRANSFER_POLLING_RATE_MIN = 0.0  # [1; 0]
+IMITATION_ADVANTAGE = 1
 UNCERTAINTY_RATE = 0.0001
+UNCERTAINTY_TIMES = 50000  # The number of times an agent should see a state before being completely certain in it
 TRANSFER_IMITATION_THRESHOLD = 2000  # N pixels alike to be considered equals
 LOG_SENSOR = False
 
