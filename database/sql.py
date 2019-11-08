@@ -22,6 +22,16 @@ class Sql:
 
         return res
 
+    def SELECT_trainingData(self, sessionId, evaluation):
+        cursor = self._cursor()
+
+        query = "SELECT `instance`, `number`, `reward` FROM `episodes` WHERE `session`=%s AND `evaluation`=%s AND `video_blob` IS NULL"
+        cursor.execute(query, (sessionId, evaluation))
+        res = cursor.fetchall()
+        cursor.close()
+
+        return res
+
     def INSERT_newSession(self, name):
         cursor = self._cursor()
 
