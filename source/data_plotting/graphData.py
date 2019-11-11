@@ -10,11 +10,16 @@ sessions = {
         'Base_4':           1063,
         'Base_5':           1064,
         'Base_6':           1069,
-        'Transfer_1-2':     1071,
-        'Transfer_2-3':     1072,
-        'Transfer_3-4':     1073,
-        'Transfer_4-5':     1074,
-        'Transfer_5-6':     1081
+        'Imitation_Transfer_1-2':     1286,
+        'Imitation_Transfer_2-3':     1290,
+        'Imitation_Transfer_3-4':     1291,
+        'Imitation_Transfer_4-5':     1292,
+        'Imitation_Transfer_5-6':     1293
+        # 'Transfer_1-2':     1071,
+        # 'Transfer_2-3':     1072,
+        # 'Transfer_3-4':     1073,
+        # 'Transfer_4-5':     1074,
+        # 'Transfer_5-6':     1081
     }
 
 if __name__ == '__main__':
