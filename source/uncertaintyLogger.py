@@ -25,15 +25,15 @@ class UncertaintyLogger:
             os.makedirs(path)
 
         # Print the rows
-        with open(path+os.sep+filename, "w") as file:
-            writer = csv.writer(file, seperator=";")
-            writer.writelines(rows)
+        with open(path+os.sep+filename, "w", newline='') as file:
+            writer = csv.writer(file, delimiter=",")
+            writer.writerows(rows)
 
     def _createRows(self):
         rows = []
 
         for frame_nr in range(self.total_frames):
-            frame_data = [f"#{frame_nr}", f"img_{frame_nr}.png"]
+            frame_data = [f"#{frame_nr+1}", f"http://192.168.0.2/img/{frame_nr+1}.png"]
 
             for log in self.logs:
                 frame_data.append(log.getCount(frame_nr))

@@ -53,7 +53,7 @@ class UncertaintyCalculator:
             uncertainties.append(uncertainty)
             ids.append(index)
 
-        self._logOrExportCounters()
+        #self._logOrExportCounters()
 
         return uncertainties, ids
 
@@ -62,7 +62,7 @@ class UncertaintyCalculator:
             self.logger.log(self.seenObservations)
 
         if (self.counter + 1) % 350 == 0:
-            self.logger.exportAsCsv("imitation_frames", f"bar_race_{self.counter}.csv")
+            self.logger.exportAsCsv(f"imitation_frames/{self.modelName}", f"bar_race_{self.counter}.csv")
 
     def updateStateCounter(self, indices):
         self.counter += 1
