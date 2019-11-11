@@ -79,6 +79,12 @@ class CarlaSyncEnv(gym.Env):
         self.car_last_tick_wheels_on_road = None
         self.car_last_episode_time = None
 
+        # Spline direction determining
+        self.DIRECTION_THRESHOLD = 10
+        self.direction = 0
+        self.poscounter = 0
+        self.negcounter = 0
+
         # Declare classes
         self.reward = Reward(self)
         self.mediaHandler = MediaHandler(self)
@@ -494,6 +500,22 @@ class CarlaSyncEnv(gym.Env):
             distanceAlongSpline = -(self.previousDistanceOnSpline + (self.splineMaxDistance - self.distanceOnSpline))  # Should instead be the negative distance that the vehicle moved backwards
         elif abs(distanceAlongSpline) > 1000:
             distanceAlongSpline = 0
+
+        # If committed to opposing the spline direction, reverse the reward
+        if self.direction == -1:
+            distanceAlongSpline *= -1
+        # If not committed to a direction yet, both ways give positive reward, and points towards committing to that direction.
+        elif self.direction == 0:
+            if np.sign(distanceAlongSpline) > 0:
+                self.poscounter += 1
+                if self.poscounter > self.DIRECTION_THRESHOLD:
+                    self.direction = 1
+            elif np.sign(distanceAlongSpline) < 0:
+                self.negcounter += 1
+                if self.negcounter > self.DIRECTION_THRESHOLD:
+                    self.direction = -1
+            distanceAlongSpline = abs(distanceAlongSpline)
+
         return distanceAlongSpline/100
 
     # Returns true if the current episode should be stopped
