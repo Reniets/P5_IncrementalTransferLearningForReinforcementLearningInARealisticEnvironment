@@ -4,65 +4,87 @@ import numpy as np
 
 
 def findJumpStart():
-    jumpstartBase = np.array([])
-    jumpstartTransfer = np.array([0.0])
+    jumpStartBase = None
+    jumpStartTransfer = None
 
-    for name in sessions.keys():
-        episodesAccumMean = getEpisodesAccumMean(name)
-
-        jump_start = episodesAccumMean[4]/5
-
-        if name.find('Transfer') != -1:
-            jumpstartTransfer = np.append(jumpstartTransfer, jump_start)
+    for sessionType, sessionList in sessions.items():
+        if sessionType == 'Base':
+            jumpStartBase = np.array([])
         else:
-            jumpstartBase = np.append(jumpstartBase, jump_start)
-        print(f'Jumpstart: {jump_start}')
+            jumpStartTransfer = np.array([0.0])  # Initial element is just for level 1 which is not defined in transfer
 
-    print(f'Jumpstart Base: {jumpstartBase},\nJumpstart Transfer{jumpstartTransfer},\nJumpstart Diff: {jumpstartTransfer-jumpstartBase}')
+        for name in sessionList.keys():
+            episodesAccumMean = getEpisodesAccumMean(name)
+
+            jump_start = episodesAccumMean[4]/5
+
+            if sessionType == 'Base':
+                jumpStartBase = np.append(jumpStartBase, jump_start)
+            else:
+                jumpStartTransfer = np.append(jumpStartTransfer, jump_start)
+
+            #print(f'Jumpstart: {jump_start}')
+
+        if sessionType != 'Base':
+            #print(f'Jumpstart Base: {jumpStartBase},\nJumpstart Transfer{jumpStartTransfer}')
+            print(f'Jumpstart Diff: {(jumpStartTransfer-jumpStartBase)[1:]}')
 
 
 def findSlope():
-    slopesBase = np.array([])
-    slopesTransfer = np.array([0.0])
+    slopesBase = None
+    slopesTransfer = None
 
-    for name in sessions.keys():
-        episodesAccumMean = getEpisodesAccumMean(name)
-
-        greatest_slope = float('-inf')
-        for x1 in range(len(episodesAccumMean)-10):
-            x2 = x1 + 10
-            y1 = episodesAccumMean[x1]
-            y2 = episodesAccumMean[x2]
-            slope = int((y2-y1)/(x2-x1))
-            if slope > greatest_slope:
-                greatest_slope = slope
-
-        if name.find('Transfer') != -1:
-            slopesTransfer = np.append(slopesTransfer, greatest_slope)
+    for sessionType, sessionList in sessions.items():
+        if sessionType == 'Base':
+            slopesBase = np.array([])
         else:
-            slopesBase = np.append(slopesBase, greatest_slope)
-        print(f'Slope: {greatest_slope}')
+            slopesTransfer = np.array([0.0])  # Initial element is just for level 1 which is not defined in transfer
 
-    print(f'Base: {slopesBase},\nTransfer{slopesTransfer},\nDiff: {slopesTransfer-slopesBase}\nPercentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase]}')
+        for name in sessionList.keys():
+            episodesAccumMean = getEpisodesAccumMean(name)
+            y1 = episodesAccumMean[-10]
+            y2 = episodesAccumMean[-1]
+            x1 = len(episodesAccumMean)-10
+            x2 = len(episodesAccumMean)
+
+            slope = int((y2-y1)/(x2-x1))
+
+            if sessionType == 'Base':
+                slopesBase = np.append(slopesBase, slope)
+            else:
+                slopesTransfer = np.append(slopesTransfer, slope)
+            #print(f'Slope: {slope}')
+
+        if sessionType != 'Base':
+            print(f'Slope Diff: {(slopesTransfer-slopesBase)[1:]}, Percentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase][1:]}')
 
 
 def findZeroCrossing():
-    for name in sessions.keys():
-        episodesAccumMean = getEpisodesAccumMean(name)
+    for sessionList in sessions.values():
+        epZeroCrossings = []
 
-        aboveZeros = []
-        for k, v in enumerate(episodesAccumMean):
-            if v > 0:
-                aboveZeros.append((k, v))
+        for name in sessionList.keys():
+            episodesAccumMean = getEpisodesAccumMean(name)
 
-        print(f'Zero crossings: {aboveZeros[0][0]+1}')
+            aboveZeros = []
+            for k, v in enumerate(episodesAccumMean):
+                if v > 0:
+                    aboveZeros.append((k, v))
+
+            epZeroCrossings.append(aboveZeros[0][0]+1)
+
+        print(f'Zero crossings: {epZeroCrossings}')
 
 
 def findMinimum():
-    for name in sessions.keys():
-        episodesAccumMean = getEpisodesAccumMean(name)
+    for sessionList in sessions.values():
+        epMins = []
 
-        print(f'Name: {name} - Ep min: {np.argmin(episodesAccumMean)+1}')
+        for name in sessionList.keys():
+            episodesAccumMean = getEpisodesAccumMean(name)
+            epMins.append(np.argmin(episodesAccumMean)+1)
+
+        print(f'Mins: {epMins}')
 
 
 def getEpisodesAccumMean(name):

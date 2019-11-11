@@ -1,3 +1,5 @@
+seaborn
+pandas
 PIL
 psutil
 future
