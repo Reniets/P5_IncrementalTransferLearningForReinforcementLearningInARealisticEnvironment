@@ -91,4 +91,5 @@ class Reward:
         return reward
 
     def _followSpline(self):
-        return self.carlaEnv.getDistanceMovedAlongSpline()
+        reward = self.carlaEnv.getDistanceMovedAlongSpline()
+        return reward
