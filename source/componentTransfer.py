@@ -19,11 +19,11 @@ class ComponentTransfer:
         self.parameterNamesToTransfer = None
         self.parametersToTransfer = {}
 
-    def transfer(self, fromAgentSavePath, toAgentSavePath, fromLevel, toLevel,  parameterIndicesToTransfer):
+    def transfer(self, fromAgentSavePath, toAgentSavePath, fromLevel, toLevel,  parameterIndicesToTransfer, is_continuous=False):
         # Setup
         self.fromAgentSavePath = fromAgentSavePath
         self.toAgentSavePath = toAgentSavePath
-        self.transferAgentSavePath = f'TrainingLogs/TransferAgentLogs/Transfer_FromLevel_{str(fromLevel)}_ToLevel_{str(toLevel)}'
+        self.transferAgentSavePath = f"TrainingLogs/TransferAgentLogs/Transfer_FromLevel_{str(fromLevel)}_ToLevel_{str(toLevel)}{'_c' if is_continuous else ''}"
         self.parameterNamesToTransfer = self._getParametersToTransfer(parameterIndicesToTransfer)
 
         self._loadParametersToTransfer()
@@ -40,6 +40,8 @@ class ComponentTransfer:
         # Clean extracted folder
         shutil.rmtree('ToAgentExtracted')
         os.remove('parameters')
+
+        return self.transferAgentSavePath
 
     def _getParametersToTransfer(self, parameterIndicesToTransfer):
         parameterList = [
