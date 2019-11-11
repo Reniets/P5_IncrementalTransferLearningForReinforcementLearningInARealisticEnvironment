@@ -3,6 +3,24 @@ from source.data_plotting.graphData import sessions
 import numpy as np
 
 
+def findJumpStart():
+    jumpstartBase = np.array([])
+    jumpstartTransfer = np.array([0.0])
+
+    for name in sessions.keys():
+        episodesAccumMean = getEpisodesAccumMean(name)
+
+        jump_start = episodesAccumMean[4]/5
+
+        if name.find('Transfer') != -1:
+            jumpstartTransfer = np.append(jumpstartTransfer, jump_start)
+        else:
+            jumpstartBase = np.append(jumpstartBase, jump_start)
+        print(f'Jumpstart: {jump_start}')
+
+    print(f'Jumpstart Base: {jumpstartBase},\nJumpstart Transfer{jumpstartTransfer},\nJumpstart Diff: {jumpstartTransfer-jumpstartBase}')
+
+
 def findSlope():
     slopesBase = np.array([])
     slopesTransfer = np.array([0.0])
@@ -22,7 +40,7 @@ def findSlope():
             slopesBase = np.append(slopesBase, slope)
         print(f'Slope: {slope}')
 
-    print(f'Base: {slopesBase},\nTransfer{slopesTransfer},\nDiff: {slopesTransfer-slopesBase}')
+    print(f'Base: {slopesBase},\nTransfer{slopesTransfer},\nDiff: {slopesTransfer-slopesBase}\nPercentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase]}')
 
 
 def findZeroCrossing():
@@ -72,3 +90,4 @@ if __name__ == '__main__':
     findMinimum()
     findZeroCrossing()
     findSlope()
+    findJumpStart()
