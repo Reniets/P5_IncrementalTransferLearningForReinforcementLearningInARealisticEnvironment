@@ -26,8 +26,7 @@ def findJumpStart():
             #print(f'Jumpstart: {jump_start}')
 
         if sessionType != 'Base':
-            #print(f'Jumpstart Base: {jumpStartBase},\nJumpstart Transfer{jumpStartTransfer}')
-            print(f'Jumpstart Diff: {(jumpStartTransfer-jumpStartBase)[1:]}')
+            print(f'{sessionType} - Jumpstart Diff: {(jumpStartTransfer-jumpStartBase)[1:]}')
 
 
 def findSlope():
@@ -56,11 +55,11 @@ def findSlope():
             #print(f'Slope: {slope}')
 
         if sessionType != 'Base':
-            print(f'Slope Diff: {(slopesTransfer-slopesBase)[1:]}, Percentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase][1:]}')
+            print(f'{sessionType} - Slope Diff: {(slopesTransfer-slopesBase)[1:]}, Percentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase][1:]}')
 
 
 def findZeroCrossing():
-    for sessionList in sessions.values():
+    for sessionType, sessionList in sessions.items():
         epZeroCrossings = []
 
         for name in sessionList.keys():
@@ -73,18 +72,18 @@ def findZeroCrossing():
 
             epZeroCrossings.append(aboveZeros[0][0]+1)
 
-        print(f'Zero crossings: {epZeroCrossings}')
+        print(f'{sessionType} - Zero crossings: {epZeroCrossings}')
 
 
 def findMinimum():
-    for sessionList in sessions.values():
+    for sessionType, sessionList in sessions.items():
         epMins = []
 
         for name in sessionList.keys():
             episodesAccumMean = getEpisodesAccumMean(name)
             epMins.append(np.argmin(episodesAccumMean)+1)
 
-        print(f'Mins: {epMins}')
+        print(f'{sessionType} - Mins: {epMins}')
 
 
 def getEpisodesAccumMean(name):
@@ -112,7 +111,7 @@ def getEpisodesAccumMean(name):
 
 
 if __name__ == '__main__':
+    findSlope()
     findMinimum()
     findZeroCrossing()
-    findSlope()
     findJumpStart()
