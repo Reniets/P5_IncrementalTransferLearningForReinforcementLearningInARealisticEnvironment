@@ -27,18 +27,21 @@ def findSlope():
 
     for name in sessions.keys():
         episodesAccumMean = getEpisodesAccumMean(name)
-        y1 = episodesAccumMean[-10]
-        y2 = episodesAccumMean[-1]
-        x1 = len(episodesAccumMean)-10
-        x2 = len(episodesAccumMean)
 
-        slope = int((y2-y1)/(x2-x1))
+        greatest_slope = float('-inf')
+        for x1 in range(len(episodesAccumMean)-10):
+            x2 = x1 + 10
+            y1 = episodesAccumMean[x1]
+            y2 = episodesAccumMean[x2]
+            slope = int((y2-y1)/(x2-x1))
+            if slope > greatest_slope:
+                greatest_slope = slope
 
         if name.find('Transfer') != -1:
-            slopesTransfer = np.append(slopesTransfer, slope)
+            slopesTransfer = np.append(slopesTransfer, greatest_slope)
         else:
-            slopesBase = np.append(slopesBase, slope)
-        print(f'Slope: {slope}')
+            slopesBase = np.append(slopesBase, greatest_slope)
+        print(f'Slope: {greatest_slope}')
 
     print(f'Base: {slopesBase},\nTransfer{slopesTransfer},\nDiff: {slopesTransfer-slopesBase}\nPercentages: {[f"{(ratio-1)*100}%" for ratio in slopesTransfer/slopesBase]}')
 
