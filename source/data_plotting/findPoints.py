@@ -41,17 +41,19 @@ def findSlope():
 
         for name in sessionList.keys():
             episodesAccumMean = getEpisodesAccumMean(name)
-            y1 = episodesAccumMean[-10]
-            y2 = episodesAccumMean[-1]
-            x1 = len(episodesAccumMean)-10
-            x2 = len(episodesAccumMean)
-
-            slope = int((y2-y1)/(x2-x1))
+            greatest_slope = float('-inf')
+            for x1 in range(len(episodesAccumMean)-10):
+                x2 = x1+10
+                y1 = episodesAccumMean[x1]
+                y2 = episodesAccumMean[x2]
+                slope = int((y2-y1)/(x2-x1))
+                if slope > greatest_slope:
+                    greatest_slope = slope
 
             if sessionType == 'Base':
-                slopesBase = np.append(slopesBase, slope)
+                slopesBase = np.append(slopesBase, greatest_slope)
             else:
-                slopesTransfer = np.append(slopesTransfer, slope)
+                slopesTransfer = np.append(slopesTransfer, greatest_slope)
             #print(f'Slope: {slope}')
 
         if sessionType != 'Base':

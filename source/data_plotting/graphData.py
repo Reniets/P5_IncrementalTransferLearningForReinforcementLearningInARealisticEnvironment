@@ -32,13 +32,20 @@ sessions = {
         'ImitationDirect_3-4': 1291,
         'ImitationDirect_4-5': 1292,
         'ImitationDirect_5-6': 1293
+    },
+    'ImitationContinuous': {
+        'ImitationDirect_1-2': 1286,
+        'ImitationContinuous_2-3': 1303,
+        'ImitationContinuous_3-4': 1304,
+        'ImitationContinuous_4-5': 1305,
+        'ImitationContinuous_5-6': 1301
     }
 }
 
 if __name__ == '__main__':
     sns.set()
     sns.set_context("paper")
-    sessionIndexes = ['Base', 'DirectSingle', 'DirectContinuous']
+    sessionIndexes = ['Base', 'ImitationSingle', 'ImitationContinuous']
     eval = 0
 
     for accum in range(2):
@@ -58,12 +65,12 @@ if __name__ == '__main__':
                 name = sessionName if eval is 0 else sessionName + '_eval'
 
                 sessionPath = f'../../data/{name}.csv' if accum == 0 else f'../../data/{name}_accum.csv'
-                data = read_csv(sessionPath) #, nrows=100)
+                data = read_csv(sessionPath)  # , nrows=100)
 
                 sns.lineplot(x='episode', y='reward', data=data, ax=axes[index // 2, index % 2])
 
                 axes[index // 2, index % 2].set_title(f'Level {level}')
-                axes[index // 2, index % 2].xaxis.set_major_locator(MultipleLocator((index+1) * 100))
+                axes[index // 2, index % 2].xaxis.set_major_locator(MultipleLocator((index + 1) * 100))
                 axes[index // 2, index % 2].xaxis.set_major_formatter(FormatStrFormatter('%d'))
 
                 if accum == 0:
