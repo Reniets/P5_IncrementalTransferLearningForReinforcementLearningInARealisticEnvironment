@@ -1,4 +1,4 @@
-from source.gps_image_2 import GpsImage2
+from source.gps_image import GpsImage2
 import os
 import numpy as np
 import cv2
@@ -53,20 +53,24 @@ def lerp3(val1, val2, val3, d):
 
 #callback = Callback(None)
 
-maps = [f"Level_{i}" for i in range(1, 7)]
+maps = [f"SelectivePI_FromLevel_{i-1}_ToLevel_{i}_c" for i in range(1, 7)]
+
+base_maps = [f"Level_{i}" for i in range(1,7)]
 
 non_loop_maps = [f"Level_{i}" for i in range(1, 3)]
 
 metrics = ['median', 'max', 'min']
-scale = 20
+scale = 10
 
-for map_name in maps:
+for k in range(2, len(maps)):
     for metric in metrics:
+        #print(i)
+        map_name = maps[k]
         print(f"{map_name}_{metric}")
 
         # Export the image
         image_dir = f"GpsData/A_referenceData/{map_name}"
-        gps_data = getUE4GpsData(f"{image_dir}/UERef.txt")
+        gps_data = getUE4GpsData(f"GpsData/A_referenceData/{base_maps[k]}/UERef.txt")
 
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
@@ -78,10 +82,10 @@ for map_name in maps:
         mid_color = (0, 255, 0)
         end_color = (0, 0, 255)
         start = 1
-        end = len(glob.glob(f"GpsData/Base_{map_name}/gps_{metric}_*"))
+        end = len(glob.glob(f"GpsData/{map_name}/gps_{metric}_*"))
 
         for i in range(start, end+1):
-            run_gps_data = getGpsData(f"GpsData/Base_{map_name}/gps_{metric}_{i}.txt")
+            run_gps_data = getGpsData(f"GpsData/{map_name}/gps_{metric}_{i}.txt")
             gps_image.applyCoordinatesAndUpdate(run_gps_data, color=lerp3(start_color, mid_color, end_color, (i - start) / (end - start)))
 
         cv2.imwrite(f"{image_dir}/{metric}_{scale}.png", gps_image.image)

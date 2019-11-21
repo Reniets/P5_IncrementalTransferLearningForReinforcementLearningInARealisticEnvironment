@@ -500,6 +500,16 @@ class CarlaSyncEnv(gym.Env):
             distanceAlongSpline = -(self.previousDistanceOnSpline + (self.splineMaxDistance - self.distanceOnSpline))  # Should instead be the negative distance that the vehicle moved backwards
         elif abs(distanceAlongSpline) > 1000:
             distanceAlongSpline = 0
+        return distanceAlongSpline/100
+
+    def NEW_getDistanceMovedAlongSpline(self):
+        distanceAlongSpline = self.distanceOnSpline - self.previousDistanceOnSpline if self.previousDistanceOnSpline is not None else 0
+        if distanceAlongSpline < -0.8 * self.splineMaxDistance:  # If the car has completed an entire loop the distance moved will be a negative number close to the max spline distance
+            distanceAlongSpline = self.splineMaxDistance - self.previousDistanceOnSpline + self.distanceOnSpline  # Should instead be the distance to the finish line + the distance past the finish line
+        elif distanceAlongSpline > 0.8 * self.splineMaxDistance:  # If the car somehow reverses by the finish line it will have moved a distance close to max spline distance
+            distanceAlongSpline = -(self.previousDistanceOnSpline + (self.splineMaxDistance - self.distanceOnSpline))  # Should instead be the negative distance that the vehicle moved backwards
+        elif abs(distanceAlongSpline) > 1000:
+            distanceAlongSpline = 0
 
         # If committed to opposing the spline direction, reverse the reward
         if self.direction == -1:

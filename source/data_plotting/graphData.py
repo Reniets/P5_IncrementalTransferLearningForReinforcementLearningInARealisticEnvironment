@@ -37,7 +37,7 @@ sessions = {
         'ImitationDirect_1-2': 1286,
         'ImitationContinuous_2-3': 1303,
         'ImitationContinuous_3-4': 1304,
-        'ImitationContinuous_4-5': 1305,
+        'ImitationContinuous_4-5': 1299,
         'ImitationContinuous_5-6': 1301
     }
 }

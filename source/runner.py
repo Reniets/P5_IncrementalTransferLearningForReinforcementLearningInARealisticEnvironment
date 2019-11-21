@@ -110,12 +110,15 @@ class Runner:
         # Get model name
         modelName = self._getModelName()
 
+        print(modelName)
+
         # Boolean features to determine if a model should be loaded
         model_number_is_set = settings.MODEL_NUMBER is not None
         model_exist = os.path.isfile(modelName)
+        print(f'model exist = {model_exist}')
         not_imitation_transfer = settings.TRANSFER_AGENT != TransferType.IMITATION.value
 
-        should_load_model = model_number_is_set and model_exist# and not_imitation_transfer
+        should_load_model = model_exist# model_number_is_set and model_exist# and not_imitation_transfer
         print(self.modelName, model_exist)
         # Create model
         if should_load_model:
@@ -257,7 +260,7 @@ class Runner:
         return np.sum(np.equal(img_a, img_b))
 
     def _getModelName(self):
-        if settings.TRANSFER_AGENT is 0:
+        if settings.TRANSFER_AGENT is 10:
             modelName = f"TrainingLogs/FullyTrainedAgentLogs/{self.modelName}.zip"
         elif settings.TRANSFER_AGENT is 1:
             modelName = self.loadFrom

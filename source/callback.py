@@ -77,23 +77,9 @@ class Callback:
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
 
-        if False:
-            # Prepare gps image
-            map_name = settings.CARLA_SIMS[0][2]
-            gps_image = GpsImage(self.getReferenceImagePath(map_name), self.getReferenceCoordinates(map_name))
-
-            # Create track image from reference photo and gps data
-            track_image = gps_image.applyCoordinates(gps_data)
-
-            cv2.imwrite(f"{image_dir}/{name_prefix}_{self._getEpisodeCount()}.png", track_image)
-
-        if True:
-            file = open(f"{image_dir}/gps_{name_prefix}_{self._getEpisodeCount()}.txt", "w+")
-
+        with open(f"{image_dir}/gps_{name_prefix}_{self._getEpisodeCount()}.txt", "w+") as file:
             for data in gps_data:
                 file.write(f"{data[0]};{data[1]}\n")
-
-            file.close()
 
     def getReferenceImagePath(self, name):
         return f"{self._getGpsReferenceBaseFolder(name)}/map.png"
