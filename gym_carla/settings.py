@@ -44,8 +44,8 @@ MODEL_VF_COEF = 0.5
 MODEL_LEARNING_RATE = 0.00075  # Default: 0.00025, was 0.00075, imitation was 0.002
 MODEL_LEARNING_RATE_MIN = 0.0001
 MODEL_DISCOUNT_FACTOR = 0.99  # Default: 0.99
-MODEL_MAX_EPISODES = 600
-MODEL_CLIP_RANGE = 0.2  # was 1.0 with imitation
+MODEL_MAX_EPISODES = 100
+MODEL_CLIP_RANGE = 0.2  # was 1.0 with old imitation
 MODEL_CLIP_RANGE_MIN = 0.2
 MODEL_CLIP_RANGE_VF = 0.2
 MODEL_NAME = "DefaultName"
@@ -55,8 +55,8 @@ TRANSFER_POLLING_RATE_START = 1  # [1; 0]
 TRANSFER_POLLING_RATE_MIN = 0.0  # [1; 0]
 IMITATION_ADVANTAGE = 1
 UNCERTAINTY_RATE = 0.0001
-UNCERTAINTY_TIMES = 15000  # The number of times an agent should see a state before being completely certain in it
-TRANSFER_IMITATION_THRESHOLD = 2125  # N pixels alike to be considered equals
+UNCERTAINTY_TIMES = 100000  # The number of times an agent should see a state before being completely certain in it
+TRANSFER_IMITATION_THRESHOLD = 2250  # N pixels alike to be considered equals
 LOG_SENSOR = False
 
 
