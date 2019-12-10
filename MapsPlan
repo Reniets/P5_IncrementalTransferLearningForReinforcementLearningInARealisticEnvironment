@@ -1,0 +1,15 @@
+Straight_Slim - ..          : 300   (Base_Level_1_Modified_4)
+Curve_Slim - Curve_Slim_alt : 600   (Base_Level_2_Modified_2)
+Square - Square_alt         : 900   (Base_Level_3_Modified_8)
+Niveau3 - Niveau3_alt       : 1200  (Base_Level_4_Modified_3)
+Kryds - Kryds_alt           : 1500  (Base_Level_5_Modified_7)
+Final1 - Final1_alt         : 1800  (Base_Level_6_Modified_8)
+___________________________________
+                            : 6300
+
+Changed settings based on trials on my own pc
+nsteps: 512->256
+lr-decay: False->True
+Policy: CnnLstm -> Cnn
+CarsPrSim: 64->21
+GraphicsDriver: OpenGL->Vulkan

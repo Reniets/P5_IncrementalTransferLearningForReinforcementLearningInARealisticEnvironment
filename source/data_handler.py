@@ -2,13 +2,14 @@ import os
 from os.path import isfile, join
 import cv2
 import datetime
-from setup.utils import CARLA_PATH, makeCarlaImportable
+
+from gym_carla.carla_utils import makeCarlaImportable
 
 makeCarlaImportable()  # Defines a path to your carla folder which makes it visible to import
 import carla
 
 
-def makeVideoFromSensorFrames(fps=10):
+def makeVideoFromSensorFrames(fps=60):
     pathIn = "../data/frames/"
     pathOut = "../data/videos/"
     fileName = str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M")) + ".avi"
@@ -54,28 +55,3 @@ def clearFrameFolder():
                 os.unlink(file_path)
         except Exception as e:
             print(e)
-
-
-def processData(data):
-    cc = carla.ColorConverter.CityScapesPalette
-
-    # Save images to disk (Output folder)
-    data.save_to_disk('../data/frames/%06d.png' % data.frame, cc)
-
-    # Get Specific segment values
-    '''
-    im_raw = data.raw_data
-    im_raw = np.reshape(im_raw, (self.IM_HEIGHT, self.IM_WIDTH, 4))
-    im_raw_seg = im_raw[:, :, 2]  #Select the R-value to get the segment value
-    print(im_raw_seg) #View link to find enumeration categories: https://carla.readthedocs.io/en/latest/cameras_and_sensors/#sensorcamerasemantic_segmentation
-    '''
-
-    # Show image plots of segment images
-    '''data.convert(cc)
-    im_raw_segment = data.raw_data
-    im_raw_segment = np.reshape(im_raw_segment, (self.IM_HEIGHT, self.IM_WIDTH, 4))
-    im_raw_segment = im_raw_segment[:, :, :3]
-    plt.imshow(im_raw_segment, interpolation='nearest')
-    plt.interactive(False)
-    plt.axis('off')
-    plt.show(block=False)'''
