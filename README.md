@@ -1,4 +1,4 @@
-# RLTL_Carla
+# Incremental Transfer Learning for Reinforcement Learning in a Realistic Environment
 5th semester project - Group d506e19 \
 Project examining how to use **transfer learning** for **reinforcement learning agents** tested in the **Carla** simulation tool
 
