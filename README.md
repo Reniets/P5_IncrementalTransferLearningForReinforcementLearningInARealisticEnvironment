@@ -8,3 +8,8 @@ Project examining how to use **transfer learning** for **reinforcement learning 
 
 Install packages in setup/requirements.txt \
 Update path of Carla installation in setup/utils.py (CARLA_PATH)
+
+# Group Members and Report:
+Jesper Adriaan van Diepen, Niki Ewald Zakariassen, Patrick Kampdal Petersen, Sebastian Lund, Simon Steiner
+
+[Report](Report.pdf)
